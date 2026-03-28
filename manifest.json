@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Domain Checker",
-  "version": "3.0",
-  "description": "Robust bulk domain availability checker with DOM validation.",
+  "name": "Domain Checker Pro",
+  "version": "4.2.0",
+  "description": "Enterprise-grade bulk domain availability aggregator.",
   "action": {},
   "background": {
     "service_worker": "background.js"
@@ -13,6 +13,6 @@
     "downloads"
   ],
   "host_permissions": [
-    "https://www.hostinger.com/*"
+    "<all_urls>"
   ]
 }
