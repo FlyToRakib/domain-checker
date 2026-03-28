@@ -1,7 +1,7 @@
 /**
  * ============================================================
- * DOMAIN CHECKER v1.0 (DEV)
- * Modular Strategy Architecture
+ * DOMAIN CHECKER PRO v1.0.0
+ * Modular Strategy Architecture - Production Ready
  * ============================================================
  */
 const PROVIDERS = {
@@ -24,62 +24,31 @@ const PROVIDERS = {
             const text = document.body.innerText.toLowerCase();
             const domainLower = domainToCheck.toLowerCase();
             if (text.includes("verify you are human") || text.includes("cloudflare")) return "CLOUDFLARE";
-            
             const isTaken = !!document.querySelector('.h-found-domain-cards-item__domain-taken-text') || 
                             !!document.querySelector('.h-domain-finder-results__no-results') ||
                             text.includes(`${domainLower} is already taken`);
             if (isTaken) return "TAKEN";
-
             const isAvail = !!document.querySelector('.h-domain-search-card__badge--success') || 
                             !!document.querySelector('[data-qa="add-to-cart-button"]') ||
                             text.includes("exact match");
             return isAvail ? "AVAILABLE" : "UNKNOWN";
         }
     },
-    // Templates for later development
-        namecheap: {
+    namecheap: {
         type: 'SCRAPE',
         url: (d) => `https://www.namecheap.com/domains/registration/results/?domain=${d}`,
-        wait: 7000, // Namecheap results sometimes take a moment to hydrate via AJAX
+        wait: 16000,
         func: (domainToCheck) => {
             const text = document.body.innerText.toLowerCase();
-            const domainLower = domainToCheck.toLowerCase();
-
-            // 1. Security/Cloudflare Check
             if (text.includes("verify you are human") || text.includes("cloudflare")) return "CLOUDFLARE";
-
-            // 2. Isolate the "Exact Match" Card (Critical for accuracy)
             const exactMatchCard = document.querySelector('.standard-container article');
-            
-            // If the card doesn't exist yet, the page hasn't fully loaded
             if (!exactMatchCard) return "LOADING_TIMEOUT";
-
-            // 3. UNAVAILABLE LOGIC (Check this first)
-            const isTakenClass = exactMatchCard.classList.contains('unavailable');
-            const hasTakenLabel = !!exactMatchCard.querySelector('.label.taken');
-            const hasMakeOffer = !!exactMatchCard.querySelector('.domain-button button.domain-agents');
-
-            if (isTakenClass || hasTakenLabel || hasMakeOffer) {
-                return "TAKEN";
-            }
-
-            // 4. AVAILABLE LOGIC
-            const isAvailableClass = exactMatchCard.classList.contains('available');
-            const hasAddToCart = !!exactMatchCard.querySelector('.domain-button button.available');
-            const exactMatchText = exactMatchCard.innerText.toLowerCase();
-
-            if (isAvailableClass || hasAddToCart || exactMatchText.includes("is available")) {
-                return "AVAILABLE";
-            }
-
-            // 5. Final Text Fallback (Last resort)
-            if (text.includes(`${domainLower} is taken`) || text.includes("is already taken")) return "TAKEN";
-            if (text.includes(`${domainLower} is available`)) return "AVAILABLE";
-
-            return "UNKNOWN";
+            const isTaken = exactMatchCard.classList.contains('unavailable') || !!exactMatchCard.querySelector('.label.taken') || !!exactMatchCard.querySelector('.domain-button button.domain-agents');
+            if (isTaken) return "TAKEN";
+            const isAvailable = exactMatchCard.classList.contains('available') || !!exactMatchCard.querySelector('.domain-button button.available') || exactMatchCard.innerText.toLowerCase().includes("is available");
+            return isAvailable ? "AVAILABLE" : "UNKNOWN";
         }
     },
-
     godaddy: {
         type: 'SCRAPE',
         url: (d) => `https://www.godaddy.com/en-pk/domainsearch/find?domainToCheck=${d}`,
@@ -87,53 +56,26 @@ const PROVIDERS = {
         func: (domainToCheck) => {
             const text = document.body.innerText.toLowerCase();
             const domainLower = domainToCheck.toLowerCase();
-
-            // 1. Security/Bot Wall Check
-            if (text.includes("verify you are human") || text.includes("access denied")) {
-                return "BLOCKED";
-            }
-
-            // 2. STRICT TAKEN CHECK (Based on your provided HTML)
-            // GoDaddy uses this specific feature wrapper when the EXACT match is taken
+            if (text.includes("verify you are human") || text.includes("access denied")) return "BLOCKED";
             const takenFeature = document.querySelector('[data-cy="exactMatchDomainTaken-feature"]');
-            const dbsCard = document.querySelector('[data-cy="dbsCard"]'); // Broker Service Card
+            const dbsCard = document.querySelector('[data-cy="dbsCard"]');
             const takenBadge = document.querySelector('[data-cy="dbsV2-badge"]');
-            
-            // Hidden accessibility text is also a very reliable "eye"
             const ariaTaken = document.querySelector('[aria-live="polite"]');
             const isAriaTaken = ariaTaken && ariaTaken.innerText.toLowerCase().includes("is taken");
-
-            if (takenFeature || dbsCard || (takenBadge && takenBadge.innerText.includes("Taken")) || isAriaTaken) {
-                return "TAKEN";
-            }
-
-            // 3. STRICT AVAILABLE CHECK
-            // We look specifically for the "availcard" ONLY if it's NOT inside a "Great Alternative" section
+            if (takenFeature || dbsCard || (takenBadge && takenBadge.innerText.includes("Taken")) || isAriaTaken) return "TAKEN";
             const availCard = document.querySelector('[data-cy="availcard"]');
-            const availableTag = document.querySelector('[data-cy="availableCard-tag"]');
-            
             if (availCard && !isAriaTaken) {
                 const cardText = availCard.innerText.toLowerCase();
-                // Ensure the available card is actually for our domain and not a suggestion
-                if (cardText.includes(domainLower) && !cardText.includes("alternative")) {
-                    return "AVAILABLE";
-                }
+                if (cardText.includes(domainLower) && !cardText.includes("alternative")) return "AVAILABLE";
             }
-
-            // 4. FALLBACKS
-            if (text.includes(`${domainLower} is taken`) || text.includes("domain taken")) return "TAKEN";
-            if (text.includes(`${domainLower} is available`)) return "AVAILABLE";
-
             return "UNKNOWN";
         }
-    },
+    }
 };
 
-// --- GLOBAL STATE ---
 let isAborted = false;
 
 document.getElementById('startBtn').addEventListener('click', async () => {
-    // 1. Data Prep
     const rawInput = document.getElementById('domainList').value;
     const providerKey = document.getElementById('providerSelect').value;
     const provider = PROVIDERS[providerKey];
@@ -143,9 +85,9 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     const baseNames = rawInput.split(/[\n,]+/).map(d => d.trim()).filter(Boolean);
     const domains = baseNames.map(name => name + tld);
 
-    if (domains.length === 0) return alert("Enter at least one domain name.");
+    if (domains.length === 0) return alert("Please enter at least one domain name.");
 
-    // 2. UI Start State
+    // UI State Management
     isAborted = false;
     const btn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -157,6 +99,8 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     
     btn.disabled = true;
     stopBtn.style.display = 'block';
+    stopBtn.disabled = false;
+    stopBtn.textContent = "Stop Scan";
     spinner.style.display = 'block';
     btnText.textContent = "Scanning...";
     
@@ -172,17 +116,14 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         box.scrollTop = box.scrollHeight;
     };
 
-    log(`[v1.0] Starting session: ${providerKey.toUpperCase()} for ${domains.length} items.`, 'sys');
+    log(`[INIT] Provider: ${providerKey.toUpperCase()} | Count: ${domains.length}`, 'sys');
 
-    // 3. Worker Setup
     let workerTab = null;
     if (provider.type === 'SCRAPE') workerTab = await chrome.tabs.create({ active: false });
 
-    // 4. Execution Loop
     for (let i = 0; i < domains.length; i++) {
-        // KILL SWITCH CHECK
         if (isAborted) {
-            log(`[ABORTED] Manually stopped by user at item ${i + 1}.`, 'warn');
+            log(`[STOPPED] Session terminated by user at domain ${i + 1}.`, 'warn');
             break;
         }
 
@@ -204,7 +145,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
             } catch (e) { status = "TAB_FAILURE"; }
         }
 
-        const msg = `[${i + 1}/${domains.length}] ${domain} -> ${status}`;
+        const msg = `[${i + 1}/${domains.length}] ${domain} → ${status}`;
         if (status === "AVAILABLE") {
             log(msg, 'avail');
             log(domain, 'avail', availLog);
@@ -213,19 +154,17 @@ document.getElementById('startBtn').addEventListener('click', async () => {
             log(msg, status === "TAKEN" ? 'taken' : 'warn');
         }
 
-        // Delay between checks
-        const waitTime = provider.type === 'API' ? 300 : (Math.floor(Math.random() * 2000) + 2500);
+        const waitTime = provider.type === 'API' ? 350 : (Math.floor(Math.random() * 2000) + 2500);
         await new Promise(r => setTimeout(r, waitTime));
     }
 
-    // 5. UI Reset State
     if (workerTab) chrome.tabs.remove(workerTab.id);
     
     btn.disabled = false;
     stopBtn.style.display = 'none';
     spinner.style.display = 'none';
     btnText.textContent = "Scan Availability";
-    log(`[COMPLETE] Session finished. Found ${results.length} available.`, 'sys');
+    log(`[COMPLETE] Session finished. Found ${results.length} available domains.`, 'sys');
 
     if (results.length > 0) {
         exportBtn.disabled = false;
@@ -237,7 +176,6 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     }
 });
 
-// STOP BUTTON LOGIC
 document.getElementById('stopBtn').addEventListener('click', () => {
     isAborted = true;
     document.getElementById('stopBtn').disabled = true;
