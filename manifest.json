@@ -1,9 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "Domain Checker",
-  "version": "3.0",
-  "description": "Robust bulk domain availability checker with DOM validation.",
-  "action": {},
+  "name": "Domain Checker Pro",
+  "version": "1.0.0",
+  "description": "A professional aggregator for bulk domain availability checking via RDAP and authorized scrapers.",
+  "icons": {
+    "16": "assets/icon16.png",
+    "32": "assets/icon32.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "32": "assets/icon32.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -13,6 +26,9 @@
     "downloads"
   ],
   "host_permissions": [
-    "https://www.hostinger.com/*"
+    "https://rdap.org/*",
+    "https://www.hostinger.com/*",
+    "https://www.namecheap.com/*",
+    "https://www.godaddy.com/*"
   ]
 }
