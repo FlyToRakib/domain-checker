@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Domain Checker</title>
+  <title>Domain Checker Pro</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -40,13 +40,29 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 30px;
+      margin-bottom: 10px; /* Reduced to make room for description */
       border-bottom: 1px solid var(--border);
       padding-bottom: 20px;
     }
 
     h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em; }
     .status-badge { font-size: 11px; background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 99px; font-weight: 700; text-transform: uppercase; }
+
+    /* New styles for the added text */
+    .app-description {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 30px;
+    }
+    
+    .tip-text {
+      font-size: 10px;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: normal;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
 
     .config-grid {
       display: grid;
@@ -152,18 +168,20 @@
 
 <div class="container">
   <header>
-    <h2>Domain Checker <span style="color:var(--text-muted); font-weight: 400; font-size: 16px; margin-left: 10px;">Aggregator</span></h2>
-    <span class="status-badge">v1.0 Stable</span>
+    <h2>Domain Checker Pro <span style="color:var(--text-muted); font-weight: 400; font-size: 16px; margin-left: 10px;">Aggregator</span></h2>
+    <span class="status-badge">v1.0.1 Stable</span>
   </header>
+  
+  <p class="app-description">A professional aggregator for bulk domain availability checking via RDAP and authorized scrapers.</p>
   
   <div class="config-grid">
     <div class="field-group">
-      <label>Base Domains</label>
+      <label>Base Domains <span class="tip-text">(input domain line break or comma-separated)</span></label>
       <textarea id="domainList" placeholder="google, facebook, youtube..."></textarea>
     </div>
 
     <div class="field-group">
-      <label>Extension (TLD)</label>
+      <label>Extension (TLD) <span class="tip-text">(type or select)</span></label>
       <input type="text" id="tldInput" list="tldList" value=".com">
       <datalist id="tldList">
         <option value=".com">.com</option><option value=".net">.net</option>
