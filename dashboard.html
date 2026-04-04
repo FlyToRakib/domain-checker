@@ -222,7 +222,7 @@
     #startBtn { flex: 3; background-color: var(--surface); color: var(--text); }
     #startBtn:hover:not(:disabled) { background-color: var(--brand-lime); color: #002719; border-color: var(--brand-lime); }
 
-    #stopBtn { flex: 1; background-color: var(--surface); color: var(--text); display: none; }
+    #stopBtn { flex: 1; background-color: var(--surface); color: var(--text); }
     #stopBtn:hover:not(:disabled) { background-color: var(--danger); color: white; border-color: var(--danger); }
 
     #startBtn:disabled, #stopBtn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -233,7 +233,7 @@
       height: 18px;
       border: 3px solid rgba(0,0,0,0.1);
       border-radius: 50%;
-      border-top-color: #ffffff;
+      border-top-color: #002719;
       animation: spin 0.8s linear infinite;
       display: none;
     }
@@ -242,7 +242,7 @@
     /* RESULTS AREA */
     .results-area {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1.3fr; /* Expanded right column slightly for table */
       gap: 24px;
       margin-top: 40px;
     }
@@ -250,7 +250,7 @@
     .panel-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .panel-label h3 { font-size: 12px; margin: 0; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
 
-    /* TERMINAL LOGS */
+    /* TERMINAL LOGS & TABLES */
     .terminal {
       background-color: var(--terminal-bg);
       color: var(--terminal-text);
@@ -262,6 +262,10 @@
       font-size: 13px;
       border: 1px solid var(--border);
     }
+    
+    .terminal.table-view {
+      padding: 0; /* Remove padding to let table headers stick flush */
+    }
 
     .entry { margin-bottom: 6px; padding-left: 12px; border-left: 2px solid transparent; }
     .entry.avail { color: var(--brand-lime); border-left-color: var(--brand-lime); font-weight: bold; }
@@ -269,7 +273,21 @@
     .entry.sys { color: var(--brand-lime); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 12px; }
     .entry.warn { color: var(--warning); }
 
-    /* EXPORT BUTTON */
+    /* FILTER & EXPORT BUTTONS */
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    
+    .filter-dropdown {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 4px;
+      outline: none;
+      font-weight: 600;
+    }
+    .filter-dropdown:focus { border-color: var(--brand-lime); }
+
     .export-btn { 
       background: transparent; border: 1px solid var(--border); color: var(--text);
       padding: 6px 16px; font-size: 12px; font-weight: 700; border-radius: 4px;
@@ -277,6 +295,39 @@
     }
     .export-btn:hover:not(:disabled) { background-color: var(--brand-lime); color: #002719; border-color: var(--brand-lime); }
     .export-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* DYNAMIC TABLE CSS */
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+    }
+    .results-table th, .results-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .results-table th:first-child, .results-table td:first-child { text-align: left; }
+    .results-table td:first-child { font-family: 'JetBrains Mono', monospace; }
+    .results-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--brand-lime);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      backdrop-filter: blur(4px);
+    }
+    .status-avail { color: var(--brand-lime); font-weight: bold; font-size: 16px; }
+    .status-taken { color: var(--danger); opacity: 0.8; font-size: 14px; }
+    .status-error { color: var(--warning); font-weight: bold; font-size: 14px; }
+    .status-pending { color: var(--text-muted); opacity: 0.3; }
+
   </style>
 </head>
 <body>
@@ -334,9 +385,14 @@
     <div class="panel">
       <div class="panel-label">
         <h3>Available Hits</h3>
-        <button id="exportBtn" class="export-btn" disabled>Export JSON</button>
+        <div class="header-actions">
+          <select id="tldFilter" class="filter-dropdown" disabled>
+            <option value="ALL">All Scanned</option>
+          </select>
+          <button id="exportBtn" class="export-btn" disabled>Export JSON</button>
+        </div>
       </div>
-      <div class="terminal" id="availLog"></div>
+      <div class="terminal table-view" id="availLog"></div>
     </div>
   </div>
 </div>

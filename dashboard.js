@@ -4,6 +4,7 @@
  * Modular Strategy Architecture - Multi-TLD Supported
  * ============================================================
  */
+
 const PROVIDERS = {
     rdap: {
         type: 'API',
@@ -96,24 +97,17 @@ function createTldCheckbox(tld, isChecked = false) {
     return label;
 }
 
-// Initialize Default TLDs
-DEFAULT_TLDS.forEach(tld => {
-    tldContainer.appendChild(createTldCheckbox(tld, tld === '.com'));
-});
+DEFAULT_TLDS.forEach(tld => tldContainer.appendChild(createTldCheckbox(tld, tld === '.com')));
 
-// Add Custom TLD Logic
 function addCustomTld() {
     let tld = customTldInput.value.trim().toLowerCase();
     if (!tld) return;
     if (!tld.startsWith('.')) tld = '.' + tld;
 
-    // Check if it already exists
     const existingCbs = Array.from(document.querySelectorAll('.tld-checkbox')).map(cb => cb.value);
     if (existingCbs.includes(tld)) {
-        // Just check it and clear input
         document.querySelector(`.tld-checkbox[value="${tld}"]`).checked = true;
     } else {
-        // Create new and prepend it
         const newEl = createTldCheckbox(tld, true);
         tldContainer.insertBefore(newEl, tldContainer.firstChild);
     }
@@ -125,31 +119,82 @@ customTldInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') addCustomTld();
 });
 
+
 // ==========================================
-// SCANNING ENGINE
+// SCANNING ENGINE & TABLE RENDERING
 // ==========================================
 let isAborted = false;
+let currentResultsGrid = {};
+let currentSelectedTlds = [];
+
+// Re-render table dynamically based on Filter selection
+function renderTable() {
+    const filterVal = document.getElementById('tldFilter').value;
+    let html = '<table class="results-table"><thead><tr><th>Domain</th>';
+    
+    // Build Headers
+    currentSelectedTlds.forEach(tld => {
+        html += `<th>${tld}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    // Build Rows
+    Object.keys(currentResultsGrid).forEach(base => {
+        const tldData = currentResultsGrid[base];
+        
+        // Filtering Logic
+        if (filterVal !== 'ALL') {
+            if (filterVal === 'AVAILABLE_ANY') {
+                const hasAvail = Object.values(tldData).includes('AVAILABLE');
+                if (!hasAvail) return; // Hide row if NO domains are available
+            } else {
+                // If specific TLD selected, hide rows where that TLD is not available
+                if (tldData[filterVal] !== 'AVAILABLE') return; 
+            }
+        }
+
+        html += `<tr><td><strong>${base}</strong></td>`;
+        currentSelectedTlds.forEach(tld => {
+            const stat = tldData[tld];
+            let icon = '<span class="status-pending">-</span>';
+            if (stat === 'AVAILABLE') icon = '<span class="status-avail">✔</span>';
+            else if (stat === 'TAKEN') icon = '<span class="status-taken">✖</span>';
+            else if (stat !== 'PENDING') icon = `<span class="status-error" title="${stat}">!</span>`;
+            
+            html += `<td>${icon}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('availLog').innerHTML = html;
+}
+
+// Attach listener to Filter dropdown
+document.getElementById('tldFilter').addEventListener('change', renderTable);
+
 
 document.getElementById('startBtn').addEventListener('click', async () => {
     const rawInput = document.getElementById('domainList').value;
     const providerKey = document.getElementById('providerSelect').value;
     const provider = PROVIDERS[providerKey];
     
-    // Get Checked TLDs
-    const selectedTlds = Array.from(document.querySelectorAll('.tld-checkbox:checked')).map(cb => cb.value);
-    
-    if (selectedTlds.length === 0) return alert("Please select or add at least one domain extension (TLD).");
+    currentSelectedTlds = Array.from(document.querySelectorAll('.tld-checkbox:checked')).map(cb => cb.value);
+    if (currentSelectedTlds.length === 0) return alert("Please select or add at least one domain extension (TLD).");
 
     const rawNames = rawInput.split(/[\n,]+/).map(d => d.trim()).filter(Boolean);
     if (rawNames.length === 0) return alert("Please enter at least one base domain.");
 
-    // Generate Cartesian Product of domains and TLDs
-    const domains = [];
+    // Setup Grid Data Structure
+    currentResultsGrid = {};
+    const scanQueue = [];
+
     rawNames.forEach(name => {
-        // Safe check: If user typed "google.com" in the base box, strip the .com part to avoid google.com.net
         const cleanName = name.split('.')[0].toLowerCase(); 
-        selectedTlds.forEach(tld => {
-            domains.push(cleanName + tld);
+        currentResultsGrid[cleanName] = {};
+        currentSelectedTlds.forEach(tld => {
+            currentResultsGrid[cleanName][tld] = 'PENDING';
+            scanQueue.push({ base: cleanName, tld: tld, domain: cleanName + tld });
         });
     });
 
@@ -160,8 +205,8 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     const spinner = document.getElementById('btnSpinner');
     const btnText = document.getElementById('btnText');
     const exportBtn = document.getElementById('exportBtn');
+    const filterDropdown = document.getElementById('tldFilter');
     const fullLog = document.getElementById('fullLog');
-    const availLog = document.getElementById('availLog');
     
     btn.disabled = true;
     stopBtn.style.display = 'block';
@@ -170,31 +215,45 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     spinner.style.display = 'block';
     btnText.textContent = "Scanning...";
     exportBtn.disabled = true;
-    
     fullLog.innerHTML = "";
-    availLog.innerHTML = "";
+
+    // Populate dynamic filter options
+    filterDropdown.innerHTML = `<option value="ALL">All Scanned</option><option value="AVAILABLE_ANY">Available in Any</option>`;
+    currentSelectedTlds.forEach(tld => {
+        const opt = document.createElement('option');
+        opt.value = tld;
+        opt.textContent = `Available in ${tld}`;
+        filterDropdown.appendChild(opt);
+    });
+    filterDropdown.disabled = false;
+    filterDropdown.value = 'ALL';
+
+    // Render Initial Empty Table
+    renderTable();
+
     let results = [];
     
-    const log = (msg, type = '', box = fullLog) => {
+    const log = (msg, type = '') => {
         const div = document.createElement('div');
         div.className = `entry ${type}`;
         div.textContent = msg;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
+        fullLog.appendChild(div);
+        fullLog.scrollTop = fullLog.scrollHeight;
     };
 
-    log(`[INIT] Provider: ${providerKey.toUpperCase()} | Queued: ${domains.length}`, 'sys');
+    log(`[INIT] Provider: ${providerKey.toUpperCase()} | Queued: ${scanQueue.length}`, 'sys');
 
     let workerTab = null;
     if (provider.type === 'SCRAPE') workerTab = await chrome.tabs.create({ active: false });
 
-    for (let i = 0; i < domains.length; i++) {
+    for (let i = 0; i < scanQueue.length; i++) {
         if (isAborted) {
             log(`[STOPPED] Session terminated by user at scan ${i + 1}.`, 'warn');
             break;
         }
 
-        const domain = domains[i];
+        const item = scanQueue[i];
+        const domain = item.domain;
         let status = "ERROR";
 
         if (provider.type === 'API') {
@@ -212,11 +271,14 @@ document.getElementById('startBtn').addEventListener('click', async () => {
             } catch (e) { status = "TAB_FAILURE"; }
         }
 
-        const msg = `[${i + 1}/${domains.length}] ${domain} → ${status}`;
+        // Update Grid & Real-time UI Table
+        currentResultsGrid[item.base][item.tld] = status;
+        renderTable(); 
+
+        const msg = `[${i + 1}/${scanQueue.length}] ${domain} → ${status}`;
         if (status === "AVAILABLE") {
             log(msg, 'avail');
-            log(domain, 'avail', availLog);
-            results.push(domain);
+            results.push(domain); // Original raw JSON export structure intact
         } else {
             log(msg, status === "TAKEN" ? 'taken' : 'warn');
         }
