@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * DOMAIN CHECKER PRO v1.1.0
+ * Domain Availability Checker - Bulk Search v1.1.0
  * Modular Strategy Architecture - Multi-TLD Supported
  * ============================================================
  */
@@ -238,7 +238,6 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         exportBtn.onclick = () => {
             const blob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
-            // Updated file name format per request
             const randId = Math.floor(Math.random() * 1000000);
             chrome.downloads.download({ url, filename: `domain_list_${randId}.json` });
         };
