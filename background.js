@@ -1,6 +1,6 @@
 /**
  * Domain Availability Checker - Background Service Worker
- * Version 1.0.1 Stable
+ * Version 1.1.0 Stable
  */
 
 chrome.action.onClicked.addListener(async () => {

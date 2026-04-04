@@ -14,7 +14,6 @@
       --text: #1f2937;
       --text-muted: #6b7280;
       --border: #e5e7eb;
-      /* Logic for original layout elements */
       --terminal-bg: #002719;
       --terminal-text: #f9fafb;
       --success: #10b981;
@@ -69,7 +68,7 @@
       font-size: 24px; 
       font-weight: 800; 
       letter-spacing: -0.025em; 
-      color: var(--brand-dark); /* Top-level branding */
+      color: var(--brand-dark);
     }
     
     @media (prefers-color-scheme: dark) {
@@ -119,7 +118,7 @@
     }
 
     /* INPUTS & TEXTAREAS */
-    textarea, input, select {
+    textarea, input[type="text"], select {
       padding: 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -130,7 +129,7 @@
       outline: none;
     }
 
-    textarea:focus, input:focus, select:focus { 
+    textarea:focus, input[type="text"]:focus, select:focus { 
       border-color: var(--brand-lime); 
       box-shadow: 0 0 0 2px rgba(174, 237, 34, 0.2);
     }
@@ -140,6 +139,66 @@
       font-family: 'JetBrains Mono', monospace; 
       line-height: 1.6; 
       resize: none; 
+    }
+
+    /* TLD MULTI-SELECT STYLES */
+    .tld-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+    .custom-tld-input-group {
+      display: flex;
+      gap: 6px;
+    }
+    .custom-tld-input-group input {
+      flex: 1;
+      padding: 8px 12px;
+    }
+    .custom-tld-input-group button {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    .custom-tld-input-group button:hover {
+      background: var(--brand-lime);
+      color: #002719;
+      border-color: var(--brand-lime);
+    }
+    .tld-checkbox-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      overflow-y: auto;
+      max-height: 100px;
+      padding-right: 4px;
+    }
+    .tld-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .tld-pill:hover {
+      border-color: var(--text-muted);
+    }
+    .tld-pill input[type="checkbox"] {
+      margin: 0;
+      accent-color: var(--brand-lime);
+      cursor: pointer;
     }
 
     /* BUTTONS */
@@ -160,36 +219,13 @@
       font-size: 15px;
     }
 
-    /* Start Button - Neutral to Lime Reveal */
-    #startBtn {
-      flex: 3;
-      background-color: var(--surface);
-      color: var(--text);
-    }
+    #startBtn { flex: 3; background-color: var(--surface); color: var(--text); }
+    #startBtn:hover:not(:disabled) { background-color: var(--brand-lime); color: #002719; border-color: var(--brand-lime); }
 
-    #startBtn:hover:not(:disabled) {
-      background-color: var(--brand-lime);
-      color: #002719;
-      border-color: var(--brand-lime);
-    }
+    #stopBtn { flex: 1; background-color: var(--surface); color: var(--text); display: none; }
+    #stopBtn:hover:not(:disabled) { background-color: var(--danger); color: white; border-color: var(--danger); }
 
-    /* Stop Button */
-    #stopBtn {
-      flex: 1;
-      background-color: var(--surface);
-      color: var(--text);
-    }
-
-    #stopBtn:hover:not(:disabled) {
-      background-color: var(--danger);
-      color: white;
-      border-color: var(--danger);
-    }
-
-    #startBtn:disabled, #stopBtn:disabled { 
-      opacity: 0.5; 
-      cursor: not-allowed; 
-    }
+    #startBtn:disabled, #stopBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* LOADING SPINNER */
     .spinner {
@@ -201,7 +237,6 @@
       animation: spin 0.8s linear infinite;
       display: none;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* RESULTS AREA */
@@ -213,13 +248,7 @@
     }
 
     .panel-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .panel-label h3 { 
-      font-size: 12px; 
-      margin: 0; 
-      color: var(--text-muted); 
-      text-transform: uppercase; 
-      font-weight: 700; 
-    }
+    .panel-label h3 { font-size: 12px; margin: 0; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
 
     /* TERMINAL LOGS */
     .terminal {
@@ -240,25 +269,13 @@
     .entry.sys { color: var(--brand-lime); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 12px; }
     .entry.warn { color: var(--warning); }
 
-    /* EXPORT BUTTON - Outline Style */
+    /* EXPORT BUTTON */
     .export-btn { 
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 16px; 
-      font-size: 12px; 
-      font-weight: 700; 
-      border-radius: 4px;
-      cursor: pointer; 
-      transition: all 0.2s ease;
+      background: transparent; border: 1px solid var(--border); color: var(--text);
+      padding: 6px 16px; font-size: 12px; font-weight: 700; border-radius: 4px;
+      cursor: pointer; transition: all 0.2s ease;
     }
-
-    .export-btn:hover:not(:disabled) {
-        background-color: var(--brand-lime);
-        color: #002719;
-        border-color: var(--brand-lime);
-    }
-    
+    .export-btn:hover:not(:disabled) { background-color: var(--brand-lime); color: #002719; border-color: var(--brand-lime); }
     .export-btn:disabled { opacity: 0.3; cursor: not-allowed; }
   </style>
 </head>
@@ -267,27 +284,27 @@
 <div class="container">
   <header>
     <h2>Domain Availability Checker <span style="color:var(--text-muted); font-weight: 400; font-size: 16px; margin-left: 10px;">Aggregator</span></h2>
-    <span class="status-badge">v1.0.1 Stable</span>
+    <span class="status-badge">v1.1.0 Stable</span>
   </header>
   
   <p class="app-description">A professional aggregator for bulk domain availability checking via RDAP and authorized scrapers.</p>
   
   <div class="config-grid">
     <div class="field-group">
-      <label>Base Domains <span class="tip-text">(input domain line break or comma-separated)</span></label>
+      <label>Base Domains <span class="tip-text">(line break or comma-separated)</span></label>
       <textarea id="domainList" placeholder="google, facebook, youtube..."></textarea>
     </div>
 
     <div class="field-group">
-      <label>Extension (TLD) <span class="tip-text">(type or select)</span></label>
-      <input type="text" id="tldInput" list="tldList" value=".com">
-      <datalist id="tldList">
-        <option value=".com">.com</option><option value=".net">.net</option>
-        <option value=".org">.org</option><option value=".io">.io</option>
-        <option value=".ai">.ai</option><option value=".app">.app</option>
-        <option value=".dev">.dev</option><option value=".co">.co</option>
-        <option value=".me">.me</option><option value=".info">.info</option>
-      </datalist>
+      <label>Extensions (TLD) <span class="tip-text">(Select multiple)</span></label>
+      <div class="tld-wrapper">
+        <div class="custom-tld-input-group">
+          <input type="text" id="customTldInput" placeholder="Add custom (e.g. .xyz)">
+          <button id="addCustomTldBtn">+</button>
+        </div>
+        <div class="tld-checkbox-list" id="tldContainer">
+          </div>
+      </div>
     </div>
 
     <div class="field-group">

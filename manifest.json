@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Domain Availability Checker",
-  "version": "1.0.2",
-  "description": "Bulk domain availability checker using RDAP and real-time scrapers for investors. Fast, private, and local-first.",
+  "name": "Domain Availability Checker - Bulk Search",
+  "short_name": "Domain Checker",
+  "version": "1.1.0",
+  "description": "Bulk domain availability checker for investors. Scan multiple TLDs fast via RDAP API and live registrar scraping. 100% private and local-first.",
   "icons": {
     "16": "assets/icon16.png",
     "32": "assets/icon32.png",

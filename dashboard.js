@@ -1,7 +1,7 @@
 /**
  * ============================================================
- * DOMAIN CHECKER PRO v1.0.0
- * Modular Strategy Architecture - Production Ready
+ * DOMAIN CHECKER PRO v1.1.0
+ * Modular Strategy Architecture - Multi-TLD Supported
  * ============================================================
  */
 const PROVIDERS = {
@@ -73,19 +73,85 @@ const PROVIDERS = {
     }
 };
 
+// ==========================================
+// TLD UI MANAGEMENT
+// ==========================================
+const DEFAULT_TLDS = ['.com', '.net', '.org', '.io', '.ai', '.app', '.dev', '.co', '.me', '.info'];
+const tldContainer = document.getElementById('tldContainer');
+const customTldInput = document.getElementById('customTldInput');
+const addCustomTldBtn = document.getElementById('addCustomTldBtn');
+
+function createTldCheckbox(tld, isChecked = false) {
+    const label = document.createElement('label');
+    label.className = 'tld-pill';
+    
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = tld;
+    input.className = 'tld-checkbox';
+    input.checked = isChecked;
+
+    label.appendChild(input);
+    label.appendChild(document.createTextNode(tld));
+    return label;
+}
+
+// Initialize Default TLDs
+DEFAULT_TLDS.forEach(tld => {
+    tldContainer.appendChild(createTldCheckbox(tld, tld === '.com'));
+});
+
+// Add Custom TLD Logic
+function addCustomTld() {
+    let tld = customTldInput.value.trim().toLowerCase();
+    if (!tld) return;
+    if (!tld.startsWith('.')) tld = '.' + tld;
+
+    // Check if it already exists
+    const existingCbs = Array.from(document.querySelectorAll('.tld-checkbox')).map(cb => cb.value);
+    if (existingCbs.includes(tld)) {
+        // Just check it and clear input
+        document.querySelector(`.tld-checkbox[value="${tld}"]`).checked = true;
+    } else {
+        // Create new and prepend it
+        const newEl = createTldCheckbox(tld, true);
+        tldContainer.insertBefore(newEl, tldContainer.firstChild);
+    }
+    customTldInput.value = '';
+}
+
+addCustomTldBtn.addEventListener('click', addCustomTld);
+customTldInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addCustomTld();
+});
+
+// ==========================================
+// SCANNING ENGINE
+// ==========================================
 let isAborted = false;
 
 document.getElementById('startBtn').addEventListener('click', async () => {
     const rawInput = document.getElementById('domainList').value;
     const providerKey = document.getElementById('providerSelect').value;
     const provider = PROVIDERS[providerKey];
-    let tld = document.getElementById('tldInput').value.trim().toLowerCase();
-    if (tld && !tld.startsWith('.')) tld = '.' + tld;
+    
+    // Get Checked TLDs
+    const selectedTlds = Array.from(document.querySelectorAll('.tld-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedTlds.length === 0) return alert("Please select or add at least one domain extension (TLD).");
 
-    const baseNames = rawInput.split(/[\n,]+/).map(d => d.trim()).filter(Boolean);
-    const domains = baseNames.map(name => name + tld);
+    const rawNames = rawInput.split(/[\n,]+/).map(d => d.trim()).filter(Boolean);
+    if (rawNames.length === 0) return alert("Please enter at least one base domain.");
 
-    if (domains.length === 0) return alert("Please enter at least one domain name.");
+    // Generate Cartesian Product of domains and TLDs
+    const domains = [];
+    rawNames.forEach(name => {
+        // Safe check: If user typed "google.com" in the base box, strip the .com part to avoid google.com.net
+        const cleanName = name.split('.')[0].toLowerCase(); 
+        selectedTlds.forEach(tld => {
+            domains.push(cleanName + tld);
+        });
+    });
 
     // UI State Management
     isAborted = false;
@@ -103,6 +169,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     stopBtn.textContent = "Stop Scan";
     spinner.style.display = 'block';
     btnText.textContent = "Scanning...";
+    exportBtn.disabled = true;
     
     fullLog.innerHTML = "";
     availLog.innerHTML = "";
@@ -116,14 +183,14 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         box.scrollTop = box.scrollHeight;
     };
 
-    log(`[INIT] Provider: ${providerKey.toUpperCase()} | Count: ${domains.length}`, 'sys');
+    log(`[INIT] Provider: ${providerKey.toUpperCase()} | Queued: ${domains.length}`, 'sys');
 
     let workerTab = null;
     if (provider.type === 'SCRAPE') workerTab = await chrome.tabs.create({ active: false });
 
     for (let i = 0; i < domains.length; i++) {
         if (isAborted) {
-            log(`[STOPPED] Session terminated by user at domain ${i + 1}.`, 'warn');
+            log(`[STOPPED] Session terminated by user at scan ${i + 1}.`, 'warn');
             break;
         }
 
@@ -164,14 +231,16 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     stopBtn.style.display = 'none';
     spinner.style.display = 'none';
     btnText.textContent = "Scan Availability";
-    log(`[COMPLETE] Session finished. Found ${results.length} available domains.`, 'sys');
+    log(`[COMPLETE] Session finished. Found ${results.length} available.`, 'sys');
 
     if (results.length > 0) {
         exportBtn.disabled = false;
         exportBtn.onclick = () => {
             const blob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
-            chrome.downloads.download({ url, filename: `checked_${Date.now()}.json` });
+            // Updated file name format per request
+            const randId = Math.floor(Math.random() * 1000000);
+            chrome.downloads.download({ url, filename: `domain_list_${randId}.json` });
         };
     }
 });
