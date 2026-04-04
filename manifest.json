@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Domain Checker Pro",
-  "version": "1.0.1",
-  "description": "A professional aggregator for bulk domain availability checking via RDAP and authorized scrapers.",
+  "name": "Domain Availability Checker",
+  "version": "1.0.2",
+  "description": "Bulk domain availability checker using RDAP and real-time scrapers for investors. Fast, private, and local-first.",
   "icons": {
     "16": "assets/icon16.png",
     "32": "assets/icon32.png",
