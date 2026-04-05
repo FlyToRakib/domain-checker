@@ -3,7 +3,7 @@
   "name": "Domain Availability Checker - Bulk Search",
   "short_name": "Domain Checker",
   "version": "1.2.0",
-  "description": "Bulk domain availability checker for investors. Scan multiple TLDs fast via RDAP API and live registrar scraping. 100% private and local-first.",
+  "description": "Bulk Domain Availability Checker for Multiple TLDs. Fast RDAP & Live Registrar Lookup with CSV Export & Local Saving.",
   "icons": {
     "16": "assets/icon16.png",
     "32": "assets/icon32.png",
