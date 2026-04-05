@@ -3,339 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Domain Availability Checker</title>
-  <style>
-    /* CSS VARIABLES - DESIGN SYSTEM */
-    :root {
-      --brand-dark: #002719;
-      --brand-lime: #AEED22;
-      --bg: #f3f4f6;
-      --card-bg: #ffffff;
-      --surface: #f9fafb;
-      --text: #1f2937;
-      --text-muted: #6b7280;
-      --border: #e5e7eb;
-      --terminal-bg: #002719;
-      --terminal-text: #f9fafb;
-      --success: #10b981;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #111827;
-        --card-bg: #1f2937;
-        --surface: #374151;
-        --text: #f9fafb;
-        --text-muted: #9ca3af;
-        --border: #4b5563;
-        --terminal-bg: #010d08;
-      }
-    }
-
-    /* GLOBAL STYLES */
-    body {
-      font-family: 'Inter', 'Roboto', -apple-system, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 40px 20px;
-      line-height: 1.5;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background-color: var(--card-bg);
-      padding: 40px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    /* HEADER STYLING */
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 20px;
-    }
-
-    h2 { 
-      margin: 0; 
-      font-size: 24px; 
-      font-weight: 800; 
-      letter-spacing: -0.025em; 
-      color: var(--brand-dark);
-    }
-    
-    @media (prefers-color-scheme: dark) {
-        h2 { color: var(--text); }
-    }
-
-    .status-badge { 
-      font-size: 11px; 
-      background: var(--brand-lime); 
-      color: #002719; 
-      padding: 4px 12px; 
-      border-radius: 99px; 
-      font-weight: 700; 
-      text-transform: uppercase; 
-    }
-
-    .app-description {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 30px;
-    }
-    
-    .tip-text {
-      font-size: 10px;
-      font-weight: 400;
-      text-transform: none;
-      letter-spacing: normal;
-      color: var(--text-muted);
-      margin-left: 4px;
-    }
-
-    /* CONFIGURATION GRID */
-    .config-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 24px;
-      margin-bottom: 24px;
-    }
-
-    .field-group { display: flex; flex-direction: column; gap: 8px; }
-    label { 
-      font-size: 12px; 
-      font-weight: 700; 
-      color: var(--text-muted); 
-      text-transform: uppercase; 
-      letter-spacing: 0.05em; 
-    }
-
-    /* INPUTS & TEXTAREAS */
-    textarea, input[type="text"], select {
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 14px;
-      background-color: var(--surface);
-      color: var(--text);
-      transition: all 0.2s ease;
-      outline: none;
-    }
-
-    textarea:focus, input[type="text"]:focus, select:focus { 
-      border-color: var(--brand-lime); 
-      box-shadow: 0 0 0 2px rgba(174, 237, 34, 0.2);
-    }
-    
-    textarea { 
-      height: 140px; 
-      font-family: 'JetBrains Mono', monospace; 
-      line-height: 1.6; 
-      resize: none; 
-    }
-
-    /* TLD MULTI-SELECT STYLES */
-    .tld-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      height: 100%;
-    }
-    .custom-tld-input-group {
-      display: flex;
-      gap: 6px;
-    }
-    .custom-tld-input-group input {
-      flex: 1;
-      padding: 8px 12px;
-    }
-    .custom-tld-input-group button {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.2s ease;
-    }
-    .custom-tld-input-group button:hover {
-      background: var(--brand-lime);
-      color: #002719;
-      border-color: var(--brand-lime);
-    }
-    .tld-checkbox-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      overflow-y: auto;
-      max-height: 100px;
-      padding-right: 4px;
-    }
-    .tld-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.2s ease;
-    }
-    .tld-pill:hover {
-      border-color: var(--text-muted);
-    }
-    .tld-pill input[type="checkbox"] {
-      margin: 0;
-      accent-color: var(--brand-lime);
-      cursor: pointer;
-    }
-
-    /* BUTTONS */
-    .action-row { display: flex; gap: 16px; margin-top: 8px; }
-    
-    button#startBtn, button#stopBtn {
-      font-family: inherit;
-      font-weight: 600;
-      border-radius: 6px;
-      padding: 12px 24px;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-size: 15px;
-    }
-
-    #startBtn { flex: 3; background-color: var(--surface); color: var(--text); }
-    #startBtn:hover:not(:disabled) { background-color: var(--brand-lime); color: #002719; border-color: var(--brand-lime); }
-
-    #stopBtn { flex: 1; background-color: var(--surface); color: var(--text); }
-    #stopBtn:hover:not(:disabled) { background-color: var(--danger); color: white; border-color: var(--danger); }
-
-    #startBtn:disabled, #stopBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* LOADING SPINNER */
-    .spinner {
-      width: 18px;
-      height: 18px;
-      border: 3px solid rgba(0,0,0,0.1);
-      border-radius: 50%;
-      border-top-color: #002719;
-      animation: spin 0.8s linear infinite;
-      display: none;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* RESULTS AREA */
-    .results-area {
-      display: grid;
-      grid-template-columns: 1fr 1.3fr; /* Expanded right column slightly for table */
-      gap: 24px;
-      margin-top: 40px;
-    }
-
-    .panel-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .panel-label h3 { font-size: 12px; margin: 0; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
-
-    /* TERMINAL LOGS & TABLES */
-    .terminal {
-      background-color: var(--terminal-bg);
-      color: var(--terminal-text);
-      padding: 20px;
-      height: 420px;
-      overflow-y: auto;
-      border-radius: 12px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      border: 1px solid var(--border);
-    }
-    
-    .terminal.table-view {
-      padding: 0; /* Remove padding to let table headers stick flush */
-    }
-
-    .entry { margin-bottom: 6px; padding-left: 12px; border-left: 2px solid transparent; }
-    .entry.avail { color: var(--brand-lime); border-left-color: var(--brand-lime); font-weight: bold; }
-    .entry.taken { color: var(--text-muted); opacity: 0.7; }
-    .entry.sys { color: var(--brand-lime); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 12px; }
-    .entry.warn { color: var(--warning); }
-
-    /* FILTER & EXPORT BUTTONS */
-    .header-actions { display: flex; gap: 8px; align-items: center; }
-    
-    .filter-dropdown {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 12px;
-      font-size: 12px;
-      border-radius: 4px;
-      outline: none;
-      font-weight: 600;
-    }
-    .filter-dropdown:focus { border-color: var(--brand-lime); }
-
-    .export-btn { 
-      background: transparent; border: 1px solid var(--border); color: var(--text);
-      padding: 6px 16px; font-size: 12px; font-weight: 700; border-radius: 4px;
-      cursor: pointer; transition: all 0.2s ease;
-    }
-    .export-btn:hover:not(:disabled) { background-color: var(--brand-lime); color: #002719; border-color: var(--brand-lime); }
-    .export-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    /* DYNAMIC TABLE CSS */
-    .results-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: 'Inter', sans-serif;
-      font-size: 13px;
-    }
-    .results-table th, .results-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      text-align: center;
-      white-space: nowrap;
-    }
-    .results-table th:first-child, .results-table td:first-child { text-align: left; }
-    .results-table td:first-child { font-family: 'JetBrains Mono', monospace; }
-    .results-table th {
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--brand-lime);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 11px;
-      letter-spacing: 0.05em;
-      backdrop-filter: blur(4px);
-    }
-    .status-avail { color: var(--brand-lime); font-weight: bold; font-size: 16px; }
-    .status-taken { color: var(--danger); opacity: 0.8; font-size: 14px; }
-    .status-error { color: var(--warning); font-weight: bold; font-size: 14px; }
-    .status-pending { color: var(--text-muted); opacity: 0.3; }
-
-  </style>
+  <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
 
 <div class="container">
   <header>
     <h2>Domain Availability Checker <span style="color:var(--text-muted); font-weight: 400; font-size: 16px; margin-left: 10px;">Aggregator</span></h2>
-    <span class="status-badge">v1.1.0 Stable</span>
+    <span class="status-badge">v1.2.0 Stable</span>
   </header>
   
   <p class="app-description">A professional aggregator for bulk domain availability checking via RDAP and authorized scrapers.</p>
@@ -346,26 +21,32 @@
       <textarea id="domainList" placeholder="google, facebook, youtube..."></textarea>
     </div>
 
-    <div class="field-group">
-      <label>Extensions (TLD) <span class="tip-text">(Select multiple)</span></label>
-      <div class="tld-wrapper">
-        <div class="custom-tld-input-group">
-          <input type="text" id="customTldInput" placeholder="Add custom (e.g. .xyz)">
-          <button id="addCustomTldBtn">+</button>
-        </div>
-        <div class="tld-checkbox-list" id="tldContainer">
+    <div class="col-2-stack">
+      <div class="field-group" style="flex: 1; min-height: 0;">
+        <label>Extensions (TLD) <span class="tip-text">(Select multiple)</span></label>
+        <div class="tld-wrapper">
+          <div class="custom-tld-input-group">
+            <input type="text" id="customTldInput" placeholder="Add custom (e.g. .xyz)">
+            <button id="addCustomTldBtn">+</button>
           </div>
+          <div class="tld-checkbox-list" id="tldContainer">
+            </div>
+        </div>
+      </div>
+      <div class="field-group" style="height: auto;">
+        <label>Provider Strategy</label>
+        <select id="providerSelect">
+          <option value="rdap">Public RDAP (Fast API)</option>
+          <option value="hostinger">Hostinger (DOM-Scraper)</option>
+          <option value="namecheap">Namecheap (DOM-Scraper)</option>
+          <option value="godaddy">GoDaddy (DOM-Scraper)</option>
+        </select>
       </div>
     </div>
 
     <div class="field-group">
-      <label>Provider Strategy</label>
-      <select id="providerSelect">
-        <option value="rdap">Public RDAP (Fast API)</option>
-        <option value="hostinger">Hostinger (DOM-Scraper)</option>
-        <option value="namecheap">Namecheap (DOM-Scraper)</option>
-        <option value="godaddy">GoDaddy (DOM-Scraper)</option>
-      </select>
+        <label>Process Monitor</label>
+        <div class="terminal" id="fullLog"></div>
     </div>
   </div>
 
@@ -379,22 +60,43 @@
 
   <div class="results-area">
     <div class="panel">
-      <div class="panel-label"><h3>Process Monitor</h3></div>
-      <div class="terminal" id="fullLog"></div>
+      <div class="panel-label">
+        <h3>Saved Sessions</h3>
+        <div class="header-actions">
+          <button id="clearAllBtn" class="export-btn danger-outline">Clear All</button>
+        </div>
+      </div>
+      <div class="terminal" id="sessionLog">
+          </div>
     </div>
+    
     <div class="panel">
       <div class="panel-label">
-        <h3>Available Hits</h3>
+        <h3>Available Hits (Current)</h3>
         <div class="header-actions">
           <select id="tldFilter" class="filter-dropdown" disabled>
             <option value="ALL">All Scanned</option>
           </select>
-          <button id="exportBtn" class="export-btn" disabled>Export JSON</button>
+          <button id="exportBtn" class="export-btn" disabled>Export CSV</button>
         </div>
       </div>
       <div class="terminal table-view" id="availLog"></div>
     </div>
   </div>
+</div>
+
+<div id="sessionViewOverlay">
+    <div class="overlay-header">
+        <div>
+            <h2 id="overlayTitle" style="color: var(--text);">Session View</h2>
+            <p id="overlayMeta" class="app-description" style="margin:0;">Data snapshot</p>
+        </div>
+        <div class="header-actions">
+            <button id="overlayExportBtn" class="export-btn">Export CSV</button>
+            <button id="closeOverlayBtn" class="overlay-close">Close View</button>
+        </div>
+    </div>
+    <div class="overlay-content terminal table-view" id="overlayTableArea"></div>
 </div>
 
 <script src="dashboard.js"></script>

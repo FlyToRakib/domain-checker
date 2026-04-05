@@ -1,7 +1,7 @@
 /**
  * ============================================================
- * Domain Availability Checker - Bulk Search v1.1.0
- * Modular Strategy Architecture - Multi-TLD Supported
+ * Domain Availability Checker - Bulk Search v1.2.0
+ * Persistent Sessions, CSV Export, Dynamic Grid
  * ============================================================
  */
 
@@ -85,13 +85,11 @@ const addCustomTldBtn = document.getElementById('addCustomTldBtn');
 function createTldCheckbox(tld, isChecked = false) {
     const label = document.createElement('label');
     label.className = 'tld-pill';
-    
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.value = tld;
     input.className = 'tld-checkbox';
     input.checked = isChecked;
-
     label.appendChild(input);
     label.appendChild(document.createTextNode(tld));
     return label;
@@ -103,7 +101,6 @@ function addCustomTld() {
     let tld = customTldInput.value.trim().toLowerCase();
     if (!tld) return;
     if (!tld.startsWith('.')) tld = '.' + tld;
-
     const existingCbs = Array.from(document.querySelectorAll('.tld-checkbox')).map(cb => cb.value);
     if (existingCbs.includes(tld)) {
         document.querySelector(`.tld-checkbox[value="${tld}"]`).checked = true;
@@ -115,46 +112,188 @@ function addCustomTld() {
 }
 
 addCustomTldBtn.addEventListener('click', addCustomTld);
-customTldInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') addCustomTld();
+customTldInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addCustomTld(); });
+
+
+// ==========================================
+// SESSION MANAGEMENT (LOCAL STORAGE)
+// ==========================================
+let savedSessions = [];
+let activeSessionId = null;
+
+async function loadSessions() {
+    const data = await chrome.storage.local.get('dcp_sessions');
+    savedSessions = data.dcp_sessions || [];
+    renderSessionList();
+}
+
+// Added 'skipRenderList' parameter for performance optimization during tight loops
+async function saveSessionData(sessionObj, skipRenderList = false) {
+    const idx = savedSessions.findIndex(s => s.id === sessionObj.id);
+    if (idx >= 0) savedSessions[idx] = sessionObj;
+    else savedSessions.unshift(sessionObj);
+    
+    // Fire and forget storage update to prevent blocking
+    chrome.storage.local.set({ dcp_sessions: savedSessions });
+    
+    if (!skipRenderList) {
+        renderSessionList();
+    }
+}
+
+async function deleteSession(id) {
+    savedSessions = savedSessions.filter(s => s.id !== id);
+    await chrome.storage.local.set({ dcp_sessions: savedSessions });
+    renderSessionList();
+    if (activeSessionId === id) {
+        activeSessionId = null;
+        document.getElementById('availLog').innerHTML = '';
+        document.getElementById('exportBtn').disabled = true;
+    }
+}
+
+async function renameSession(id, newName) {
+    const idx = savedSessions.findIndex(s => s.id === id);
+    if (idx >= 0 && newName) {
+        savedSessions[idx].name = newName;
+        await chrome.storage.local.set({ dcp_sessions: savedSessions });
+        renderSessionList();
+    }
+}
+
+// Clear All functionality
+document.getElementById('clearAllBtn').addEventListener('click', async () => {
+    if (confirm("Are you sure you want to delete all saved sessions? This action cannot be undone.")) {
+        savedSessions = [];
+        await chrome.storage.local.set({ dcp_sessions: [] });
+        renderSessionList();
+        document.getElementById('availLog').innerHTML = '';
+        activeSessionId = null;
+        document.getElementById('exportBtn').disabled = true;
+    }
+});
+
+function renderSessionList() {
+    const container = document.getElementById('sessionLog');
+    container.innerHTML = '';
+    
+    if (savedSessions.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted);text-align:center;margin-top:20px;">No saved sessions yet.</div>';
+        return;
+    }
+
+    savedSessions.forEach(session => {
+        const div = document.createElement('div');
+        div.className = 'session-item';
+        
+        div.innerHTML = `
+            <div class="session-header">
+                <div class="session-name">
+                    ${session.name} 
+                    <button class="edit-name-btn" data-id="${session.id}">✎</button>
+                </div>
+            </div>
+            <div class="session-meta">Domains: ${Object.keys(session.grid).length} | TLDs: ${session.tlds.length}</div>
+            <div class="session-actions">
+                <button class="view-btn" data-id="${session.id}">View</button>
+                <button class="csv-btn" data-id="${session.id}">CSV</button>
+                <button class="del-btn" data-id="${session.id}">Delete</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+
+    container.querySelectorAll('.edit-name-btn').forEach(btn => {
+        btn.onclick = () => {
+            const newName = prompt("Enter new session name:");
+            renameSession(btn.getAttribute('data-id'), newName);
+        };
+    });
+    container.querySelectorAll('.del-btn').forEach(btn => {
+        btn.onclick = () => {
+            if(confirm("Delete this session?")) deleteSession(btn.getAttribute('data-id'));
+        };
+    });
+    container.querySelectorAll('.view-btn').forEach(btn => {
+        btn.onclick = () => openOverlayView(btn.getAttribute('data-id'));
+    });
+    container.querySelectorAll('.csv-btn').forEach(btn => {
+        btn.onclick = () => downloadSessionCSV(btn.getAttribute('data-id'));
+    });
+}
+
+loadSessions();
+
+// ==========================================
+// BULLETPROOF CSV EXPORT LOGIC
+// ==========================================
+function generateCSV(grid, tlds) {
+    let csv = "Domain Name," + tlds.join(",") + "\n";
+    for (const base in grid) {
+        let row = [base];
+        tlds.forEach(tld => {
+            row.push(grid[base][tld] || "PENDING");
+        });
+        csv += row.join(",") + "\n";
+    }
+    return csv;
+}
+
+function triggerCSVDownload(csvContent, filename) {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    // Universal trigger for blob downloads without strictly requiring bg worker permissions
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
+}
+
+function downloadSessionCSV(sessionId) {
+    const session = savedSessions.find(s => s.id === sessionId);
+    if (!session) return;
+    const csv = generateCSV(session.grid, session.tlds);
+    triggerCSVDownload(csv, `${session.name.replace(/\s+/g, '_')}_${session.id}.csv`);
+}
+
+// Persistent listeners for Export buttons
+document.getElementById('exportBtn').addEventListener('click', () => {
+    if (activeSessionId) downloadSessionCSV(activeSessionId);
+});
+
+document.getElementById('overlayExportBtn').addEventListener('click', () => {
+    if (activeOverlaySessionId) downloadSessionCSV(activeOverlaySessionId);
 });
 
 
 // ==========================================
-// SCANNING ENGINE & TABLE RENDERING
+// UI RENDERING & OVERLAY
 // ==========================================
-let isAborted = false;
-let currentResultsGrid = {};
-let currentSelectedTlds = [];
-
-// Re-render table dynamically based on Filter selection
-function renderTable() {
-    const filterVal = document.getElementById('tldFilter').value;
+function buildTableHTML(grid, tlds, filterVal = 'ALL') {
     let html = '<table class="results-table"><thead><tr><th>Domain</th>';
-    
-    // Build Headers
-    currentSelectedTlds.forEach(tld => {
-        html += `<th>${tld}</th>`;
-    });
+    tlds.forEach(tld => { html += `<th>${tld}</th>`; });
     html += '</tr></thead><tbody>';
 
-    // Build Rows
-    Object.keys(currentResultsGrid).forEach(base => {
-        const tldData = currentResultsGrid[base];
-        
-        // Filtering Logic
+    Object.keys(grid).forEach(base => {
+        const tldData = grid[base];
         if (filterVal !== 'ALL') {
             if (filterVal === 'AVAILABLE_ANY') {
                 const hasAvail = Object.values(tldData).includes('AVAILABLE');
-                if (!hasAvail) return; // Hide row if NO domains are available
+                if (!hasAvail) return;
             } else {
-                // If specific TLD selected, hide rows where that TLD is not available
                 if (tldData[filterVal] !== 'AVAILABLE') return; 
             }
         }
 
         html += `<tr><td><strong>${base}</strong></td>`;
-        currentSelectedTlds.forEach(tld => {
+        tlds.forEach(tld => {
             const stat = tldData[tld];
             let icon = '<span class="status-pending">-</span>';
             if (stat === 'AVAILABLE') icon = '<span class="status-avail">✔</span>';
@@ -165,38 +304,86 @@ function renderTable() {
         });
         html += '</tr>';
     });
-
     html += '</tbody></table>';
-    document.getElementById('availLog').innerHTML = html;
+    return html;
 }
 
-// Attach listener to Filter dropdown
-document.getElementById('tldFilter').addEventListener('change', renderTable);
+function renderCurrentTable() {
+    if (!activeSessionId) return;
+    const session = savedSessions.find(s => s.id === activeSessionId);
+    if (!session) return;
+    
+    const filterVal = document.getElementById('tldFilter').value;
+    document.getElementById('availLog').innerHTML = buildTableHTML(session.grid, session.tlds, filterVal);
+}
 
+document.getElementById('tldFilter').addEventListener('change', renderCurrentTable);
+
+// Full Page Overlay Functions
+const overlay = document.getElementById('sessionViewOverlay');
+let activeOverlaySessionId = null;
+
+function openOverlayView(sessionId) {
+    const session = savedSessions.find(s => s.id === sessionId);
+    if (!session) return;
+    activeOverlaySessionId = sessionId;
+    
+    document.getElementById('overlayTitle').textContent = session.name;
+    document.getElementById('overlayMeta').textContent = `Total Domains Checked: ${Object.keys(session.grid).length}`;
+    document.getElementById('overlayTableArea').innerHTML = buildTableHTML(session.grid, session.tlds, 'ALL');
+    
+    overlay.style.display = 'flex';
+}
+
+document.getElementById('closeOverlayBtn').addEventListener('click', () => {
+    overlay.style.display = 'none';
+    activeOverlaySessionId = null;
+});
+
+
+// ==========================================
+// SCANNING ENGINE
+// ==========================================
+let isAborted = false;
 
 document.getElementById('startBtn').addEventListener('click', async () => {
     const rawInput = document.getElementById('domainList').value;
     const providerKey = document.getElementById('providerSelect').value;
     const provider = PROVIDERS[providerKey];
     
-    currentSelectedTlds = Array.from(document.querySelectorAll('.tld-checkbox:checked')).map(cb => cb.value);
-    if (currentSelectedTlds.length === 0) return alert("Please select or add at least one domain extension (TLD).");
+    const selectedTlds = Array.from(document.querySelectorAll('.tld-checkbox:checked')).map(cb => cb.value);
+    if (selectedTlds.length === 0) return alert("Please select or add at least one domain extension (TLD).");
 
     const rawNames = rawInput.split(/[\n,]+/).map(d => d.trim()).filter(Boolean);
     if (rawNames.length === 0) return alert("Please enter at least one base domain.");
 
-    // Setup Grid Data Structure
-    currentResultsGrid = {};
+    // Setup Grid Data Structure & Queue
+    let currentGrid = {};
     const scanQueue = [];
 
     rawNames.forEach(name => {
         const cleanName = name.split('.')[0].toLowerCase(); 
-        currentResultsGrid[cleanName] = {};
-        currentSelectedTlds.forEach(tld => {
-            currentResultsGrid[cleanName][tld] = 'PENDING';
+        currentGrid[cleanName] = {};
+        selectedTlds.forEach(tld => {
+            currentGrid[cleanName][tld] = 'PENDING';
             scanQueue.push({ base: cleanName, tld: tld, domain: cleanName + tld });
         });
     });
+
+    // Initialize & Save New Session
+    activeSessionId = Date.now().toString();
+    const dateStr = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString();
+    
+    const newSession = {
+        id: activeSessionId,
+        name: `Scan ${dateStr}`,
+        tlds: selectedTlds,
+        grid: currentGrid,
+        status: 'RUNNING'
+    };
+    
+    // Render list immediately for the new session creation
+    await saveSessionData(newSession, false); 
 
     // UI State Management
     isAborted = false;
@@ -217,9 +404,9 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     exportBtn.disabled = true;
     fullLog.innerHTML = "";
 
-    // Populate dynamic filter options
+    // Set Filters for Current View
     filterDropdown.innerHTML = `<option value="ALL">All Scanned</option><option value="AVAILABLE_ANY">Available in Any</option>`;
-    currentSelectedTlds.forEach(tld => {
+    selectedTlds.forEach(tld => {
         const opt = document.createElement('option');
         opt.value = tld;
         opt.textContent = `Available in ${tld}`;
@@ -228,11 +415,10 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     filterDropdown.disabled = false;
     filterDropdown.value = 'ALL';
 
-    // Render Initial Empty Table
-    renderTable();
+    renderCurrentTable();
 
-    let results = [];
-    
+    let totalFoundAvailable = 0;
+
     const log = (msg, type = '') => {
         const div = document.createElement('div');
         div.className = `entry ${type}`;
@@ -241,7 +427,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         fullLog.scrollTop = fullLog.scrollHeight;
     };
 
-    log(`[INIT] Provider: ${providerKey.toUpperCase()} | Queued: ${scanQueue.length}`, 'sys');
+    log(`[INIT] Session Started, Provider: ${providerKey.toUpperCase()} | Queued: ${scanQueue.length}`, 'sys');
 
     let workerTab = null;
     if (provider.type === 'SCRAPE') workerTab = await chrome.tabs.create({ active: false });
@@ -271,14 +457,18 @@ document.getElementById('startBtn').addEventListener('click', async () => {
             } catch (e) { status = "TAB_FAILURE"; }
         }
 
-        // Update Grid & Real-time UI Table
-        currentResultsGrid[item.base][item.tld] = status;
-        renderTable(); 
+        // Performance Optimization: Save in background without rebuilding Left Sidebar list.
+        const activeSess = savedSessions.find(s => s.id === activeSessionId);
+        if (activeSess) {
+            activeSess.grid[item.base][item.tld] = status;
+            saveSessionData(activeSess, true); // skipRenderList = true ensures no lag
+            renderCurrentTable();
+        }
 
         const msg = `[${i + 1}/${scanQueue.length}] ${domain} → ${status}`;
         if (status === "AVAILABLE") {
+            totalFoundAvailable++;
             log(msg, 'avail');
-            results.push(domain); // Original raw JSON export structure intact
         } else {
             log(msg, status === "TAKEN" ? 'taken' : 'warn');
         }
@@ -289,20 +479,19 @@ document.getElementById('startBtn').addEventListener('click', async () => {
 
     if (workerTab) chrome.tabs.remove(workerTab.id);
     
+    // Final UI Cleanup
     btn.disabled = false;
     stopBtn.style.display = 'none';
     spinner.style.display = 'none';
     btnText.textContent = "Scan Availability";
-    log(`[COMPLETE] Session finished. Found ${results.length} available.`, 'sys');
-
-    if (results.length > 0) {
-        exportBtn.disabled = false;
-        exportBtn.onclick = () => {
-            const blob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const randId = Math.floor(Math.random() * 1000000);
-            chrome.downloads.download({ url, filename: `domain_list_${randId}.json` });
-        };
+    exportBtn.disabled = false;
+    
+    log(`[COMPLETE] Session finished, Data saved | Found: ${totalFoundAvailable}`, 'sys');
+    
+    const finalSess = savedSessions.find(s => s.id === activeSessionId);
+    if(finalSess) {
+        finalSess.status = 'COMPLETED';
+        await saveSessionData(finalSess, false); // Final save, force list render to update any states if necessary
     }
 });
 
