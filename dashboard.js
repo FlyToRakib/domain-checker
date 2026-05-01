@@ -32,14 +32,25 @@ const checkRdapWithFallback = async (primaryUrl, domain) => {
 
         const tld = domain.split('.').pop();
         const baseUrl = window.rdapBootstrapCache[tld];
-        
+
         if (!baseUrl) {
-            if (primaryStatus === 404) return "AVAILABLE";
-            return "UNSUPPORTED_TLD";
+            try {
+                const dnsRes = await fetch(`https://cloudflare-dns.com/dns-query?name=${domain}&type=NS`, {
+                    headers: { 'accept': 'application/dns-json' }
+                });
+                const dnsData = await dnsRes.json();
+                if (dnsData.Status === 0 && dnsData.Answer) return "TAKEN";
+                if (dnsData.Status === 3) return "AVAILABLE";
+                return "UNKNOWN";
+            } catch (e) {
+                return "UNSUPPORTED_TLD";
+            }
         }
 
         if (primaryUrl && primaryUrl.startsWith(baseUrl)) {
             if (primaryStatus === 404) return "AVAILABLE";
+            if (primaryStatus === 200) return "TAKEN";
+            if (primaryStatus === 429) return "RATE_LIMIT";
             return "ERROR";
         }
 
@@ -61,28 +72,6 @@ const PROVIDERS = {
     godaddy_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.nic.godaddy/domain/${domain}`, domain) },
     hostinger: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.hostinger.com/domain/${domain}`, domain) },
     namecheap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.namecheap.com/domain/${domain}`, domain) },
-    godaddy: {
-        type: 'SCRAPE',
-        url: (d) => `https://www.godaddy.com/en-pk/domainsearch/find?domainToCheck=${d}`,
-        wait: 8000,
-        func: (domainToCheck) => {
-            const text = document.body.innerText.toLowerCase();
-            const domainLower = domainToCheck.toLowerCase();
-            if (text.includes("verify you are human") || text.includes("access denied")) return "BLOCKED";
-            const takenFeature = document.querySelector('[data-cy="exactMatchDomainTaken-feature"]');
-            const dbsCard = document.querySelector('[data-cy="dbsCard"]');
-            const takenBadge = document.querySelector('[data-cy="dbsV2-badge"]');
-            const ariaTaken = document.querySelector('[aria-live="polite"]');
-            const isAriaTaken = ariaTaken && ariaTaken.innerText.toLowerCase().includes("is taken");
-            if (takenFeature || dbsCard || (takenBadge && takenBadge.innerText.includes("Taken")) || isAriaTaken) return "TAKEN";
-            const availCard = document.querySelector('[data-cy="availcard"]');
-            if (availCard && !isAriaTaken) {
-                const cardText = availCard.innerText.toLowerCase();
-                if (cardText.includes(domainLower) && !cardText.includes("alternative")) return "AVAILABLE";
-            }
-            return "UNKNOWN";
-        }
-    },
     verisign_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.verisign.com/com/v1/domain/${domain}`, domain) },
     pir_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.publicinterestregistry.org/rdap/domain/${domain}`, domain) },
     identity_digital_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.identitydigital.services/rdap/domain/${domain}`, domain) },
@@ -114,6 +103,25 @@ function createTldCheckbox(tld, isChecked = false) {
     input.checked = isChecked;
     label.appendChild(input);
     label.appendChild(document.createTextNode(tld));
+
+    // Add remove button for custom TLDs
+    if (!DEFAULT_TLDS.includes(tld)) {
+        const removeBtn = document.createElement('span');
+        removeBtn.innerText = ' ×';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.style.color = '#ff5555';
+        removeBtn.style.marginLeft = '4px';
+        removeBtn.style.fontWeight = 'bold';
+        removeBtn.title = "Remove this custom extension";
+        removeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            label.remove();
+            updateSelectAllBtnState();
+        });
+        label.appendChild(removeBtn);
+    }
+
     return label;
 }
 
@@ -542,4 +550,192 @@ document.getElementById('stopBtn').addEventListener('click', () => {
     isAborted = true;
     document.getElementById('stopBtn').disabled = true;
     document.getElementById('stopBtn').textContent = "Stopping...";
+});
+
+// ==========================================
+// AI BRAND NAME GENERATOR
+// ==========================================
+
+const getAiDomainBtn = document.getElementById('getAiDomainBtn');
+const aiPopupOverlay = document.getElementById('aiPopupOverlay');
+const closeAiPopupBtn = document.getElementById('closeAiPopupBtn');
+
+getAiDomainBtn.addEventListener('click', () => {
+    aiPopupOverlay.style.display = 'block';
+});
+
+closeAiPopupBtn.addEventListener('click', () => {
+    aiPopupOverlay.style.display = 'none';
+});
+
+const aiApiKey = document.getElementById('aiApiKey');
+const aiEnablePrefix = document.getElementById('aiEnablePrefix');
+const aiPrefixes = document.getElementById('aiPrefixes');
+const aiEnableSuffix = document.getElementById('aiEnableSuffix');
+const aiSuffixes = document.getElementById('aiSuffixes');
+const aiGenerateBtn = document.getElementById('aiGenerateBtn');
+const aiLoadingIndicator = document.getElementById('aiLoadingIndicator');
+const aiErrorIndicator = document.getElementById('aiErrorIndicator');
+const aiResultsArea = document.getElementById('aiResultsArea');
+const aiResultsList = document.getElementById('aiResultsList');
+
+chrome.storage.local.get(['gemini_api_key'], (result) => {
+    if (result.gemini_api_key) {
+        aiApiKey.value = result.gemini_api_key;
+    }
+});
+
+aiApiKey.addEventListener('change', () => {
+    chrome.storage.local.set({ gemini_api_key: aiApiKey.value.trim() });
+});
+
+aiEnablePrefix.addEventListener('change', () => aiPrefixes.disabled = !aiEnablePrefix.checked);
+aiEnableSuffix.addEventListener('change', () => aiSuffixes.disabled = !aiEnableSuffix.checked);
+
+function setupTagInput(containerId, inputId) {
+    const container = document.getElementById(containerId);
+    const input = document.getElementById(inputId);
+
+    // Initial remove event listeners
+    container.querySelectorAll('.remove-tag').forEach(btn => {
+        btn.addEventListener('click', (e) => e.target.parentElement.remove());
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = input.value.trim();
+            if (val) {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerHTML = `${val} <span class="remove-tag">&times;</span>`;
+                tag.querySelector('.remove-tag').addEventListener('click', (ev) => ev.target.parentElement.remove());
+                container.insertBefore(tag, input);
+                input.value = '';
+            }
+        }
+    });
+}
+
+setupTagInput('aiRulesContainer', 'aiRulesInput');
+setupTagInput('aiStyleContainer', 'aiStyleInput');
+
+function getTagValues(containerId) {
+    const container = document.getElementById(containerId);
+    return Array.from(container.querySelectorAll('.tag')).map(t => t.childNodes[0].nodeValue.trim());
+}
+
+aiGenerateBtn.addEventListener('click', async () => {
+    const apiKey = aiApiKey.value.trim();
+    if (!apiKey) {
+        aiErrorIndicator.innerText = "Please enter a Gemini API Key.";
+        aiErrorIndicator.style.display = 'block';
+        return;
+    }
+
+    const model = document.getElementById('aiModel').value;
+    const count = document.getElementById('aiCount').value;
+    const charLength = document.getElementById('aiCharLength').value;
+    const niche = document.getElementById('aiNiche').value.trim();
+    const description = document.getElementById('aiDescription').value.trim();
+    const rules = getTagValues('aiRulesContainer').join(', ');
+    const style = getTagValues('aiStyleContainer').join(', ');
+    const negative = document.getElementById('aiNegative').value.trim();
+    const actionPrompt = document.getElementById('aiActionPrompt').value.trim();
+
+    let affixPrompt = "";
+    if (aiEnablePrefix.checked && aiPrefixes.value.trim()) affixPrompt += `Prefix character length exactly: ${aiPrefixes.value.trim()}\n`;
+    if (aiEnableSuffix.checked && aiSuffixes.value.trim()) affixPrompt += `Suffix character length exactly: ${aiSuffixes.value.trim()}\n`;
+
+    const promptTemplate = `
+Generate exactly ${count} domain name ideas.
+Niche Category: ${niche}
+Brand Description: ${description}
+Max Character Length: ${charLength}
+
+Flowing Rules: ${rules}
+Style: ${style}
+${affixPrompt}
+Negative Instructions:
+${negative}
+
+Action Prompt:
+${actionPrompt}
+`;
+
+    aiErrorIndicator.style.display = 'none';
+    aiLoadingIndicator.style.display = 'block';
+    aiGenerateBtn.disabled = true;
+    aiResultsList.innerHTML = '';
+
+    try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: promptTemplate }] }]
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || "Failed to generate ideas.");
+        }
+
+        const data = await response.json();
+        const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+        const domains = textResponse.split(',').map(d => d.trim().replace(/['"\[\]`]/g, '')).filter(d => d.length > 0);
+
+        if (domains.length === 0) {
+            throw new Error("No valid domains generated.");
+        }
+
+        domains.forEach(domain => {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            row.style.padding = '10px';
+            row.style.background = 'var(--surface-light)';
+            row.style.borderRadius = '6px';
+
+            const nameEl = document.createElement('span');
+            nameEl.innerText = domain;
+            nameEl.style.color = 'var(--text)';
+            nameEl.style.fontWeight = 'bold';
+
+            const appendBtn = document.createElement('button');
+            appendBtn.innerText = '➕ Append';
+            appendBtn.className = 'ai-btn';
+            appendBtn.style.padding = '5px 10px';
+            appendBtn.style.background = 'var(--brand-lime)';
+            appendBtn.style.color = '#002719';
+            appendBtn.style.border = 'none';
+            appendBtn.style.borderRadius = '4px';
+            appendBtn.style.cursor = 'pointer';
+            appendBtn.style.fontWeight = 'bold';
+
+            appendBtn.addEventListener('click', () => {
+                const domainListEl = document.getElementById('domainList');
+                const currentVals = domainListEl.value.trim();
+                domainListEl.value = currentVals ? currentVals + '\\n' + domain : domain;
+                appendBtn.innerText = '✔ Added';
+                appendBtn.style.background = '#4CAF50';
+                appendBtn.disabled = true;
+            });
+
+            row.appendChild(nameEl);
+            row.appendChild(appendBtn);
+            aiResultsList.appendChild(row);
+        });
+
+    } catch (e) {
+        aiErrorIndicator.innerText = e.message;
+        aiErrorIndicator.style.display = 'block';
+    } finally {
+        aiLoadingIndicator.style.display = 'none';
+        aiGenerateBtn.disabled = false;
+    }
 });

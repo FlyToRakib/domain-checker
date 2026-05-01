@@ -69,12 +69,59 @@ h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em; col
 
 label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;}
 
-textarea, input[type="text"], select {
+textarea, input[type="text"], input[type="password"], input[type="number"], select {
   padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
   background-color: var(--surface); color: var(--text); outline: none;
   box-sizing: border-box; /* Keeps padding inside height limits */
 }
-textarea:focus, input[type="text"]:focus, select:focus { border-color: var(--brand-lime); box-shadow: 0 0 0 2px rgba(174, 237, 34, 0.2); }
+textarea:focus, input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, select:focus { border-color: var(--brand-lime); box-shadow: 0 0 0 2px rgba(174, 237, 34, 0.2); }
+
+/* MODERN TAG INPUT SYSTEM */
+.tag-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--surface);
+  min-height: 45px;
+  align-items: center;
+  transition: all 0.2s;
+}
+.tag-input-container:focus-within {
+  border-color: var(--brand-lime);
+  box-shadow: 0 0 0 2px rgba(174, 237, 34, 0.2);
+}
+.tag-input-container .tag {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+.tag-input-container .tag span.remove-tag {
+  margin-left: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: bold;
+}
+.tag-input-container .tag span.remove-tag:hover {
+  color: var(--danger);
+}
+.tag-input-container input {
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--text);
+  font-size: 13px;
+  flex: 1;
+  min-width: 120px;
+  padding: 4px;
+}
 
 /* BASE DOMAINS */
 textarea { 
@@ -207,3 +254,20 @@ button#startBtn, button#stopBtn { font-family: inherit; font-weight: 600; border
 .overlay-close { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 .overlay-close:hover { background: var(--danger); color: white; border-color: var(--danger); }
 .overlay-content { flex: 1; background: var(--terminal-bg); color: var(--terminal-text); border-radius: 12px; overflow-y: auto; border: 1px solid var(--border); }
+
+/* AI BUTTON HOVER EFFECTS */
+.ai-gen-btn:hover {
+  background-color: var(--brand-lime) !important;
+  color: #002719 !important;
+  border-color: var(--brand-lime) !important;
+}
+
+.ai-btn {
+  transition: all 0.2s ease;
+}
+.ai-btn:hover:not(:disabled) {
+  background-color: var(--brand-lime) !important;
+  color: #002719 !important;
+  border-color: var(--brand-lime) !important;
+  opacity: 0.9;
+}
