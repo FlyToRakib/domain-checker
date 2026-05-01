@@ -656,7 +656,7 @@ Max Character Length: ${charLength}
 Flowing Rules: ${rules}
 Style: ${style}
 ${affixPrompt}
-Negative Instructions:
+What to avoid:
 ${negative}
 
 Action Prompt:
@@ -692,44 +692,47 @@ ${actionPrompt}
             throw new Error("No valid domains generated.");
         }
 
-        domains.forEach(domain => {
-            const row = document.createElement('div');
-            row.style.display = 'flex';
-            row.style.justifyContent = 'space-between';
-            row.style.alignItems = 'center';
-            row.style.padding = '10px';
-            row.style.background = 'var(--surface-light)';
-            row.style.borderRadius = '6px';
+        const finalString = domains.join(', ');
 
-            const nameEl = document.createElement('span');
-            nameEl.innerText = domain;
-            nameEl.style.color = 'var(--text)';
-            nameEl.style.fontWeight = 'bold';
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.flexDirection = 'column';
+        row.style.gap = '15px';
+        row.style.padding = '15px';
+        row.style.background = 'var(--surface-light)';
+        row.style.borderRadius = '6px';
 
-            const appendBtn = document.createElement('button');
-            appendBtn.innerText = '➕ Append';
-            appendBtn.className = 'ai-btn';
-            appendBtn.style.padding = '5px 10px';
-            appendBtn.style.background = 'var(--brand-lime)';
-            appendBtn.style.color = '#002719';
-            appendBtn.style.border = 'none';
-            appendBtn.style.borderRadius = '4px';
-            appendBtn.style.cursor = 'pointer';
-            appendBtn.style.fontWeight = 'bold';
+        const nameEl = document.createElement('div');
+        nameEl.innerText = finalString;
+        nameEl.style.color = 'var(--text)';
+        nameEl.style.lineHeight = '1.6';
+        nameEl.style.fontFamily = "'JetBrains Mono', monospace";
+        nameEl.style.fontSize = '14px';
 
-            appendBtn.addEventListener('click', () => {
-                const domainListEl = document.getElementById('domainList');
-                const currentVals = domainListEl.value.trim();
-                domainListEl.value = currentVals ? currentVals + '\\n' + domain : domain;
-                appendBtn.innerText = '✔ Added';
-                appendBtn.style.background = '#4CAF50';
-                appendBtn.disabled = true;
-            });
+        const appendBtn = document.createElement('button');
+        appendBtn.innerText = '➕ Append All';
+        appendBtn.className = 'ai-btn';
+        appendBtn.style.padding = '10px 15px';
+        appendBtn.style.background = 'var(--brand-lime)';
+        appendBtn.style.color = '#002719';
+        appendBtn.style.border = 'none';
+        appendBtn.style.borderRadius = '4px';
+        appendBtn.style.cursor = 'pointer';
+        appendBtn.style.fontWeight = 'bold';
+        appendBtn.style.alignSelf = 'flex-start';
 
-            row.appendChild(nameEl);
-            row.appendChild(appendBtn);
-            aiResultsList.appendChild(row);
+        appendBtn.addEventListener('click', () => {
+            const domainListEl = document.getElementById('domainList');
+            const currentVals = domainListEl.value.trim();
+            domainListEl.value = currentVals ? currentVals + (currentVals.endsWith(',') ? ' ' : ', ') + finalString : finalString;
+            appendBtn.innerText = '✔ All Appended';
+            appendBtn.style.background = '#4CAF50';
+            appendBtn.disabled = true;
         });
+
+        row.appendChild(nameEl);
+        row.appendChild(appendBtn);
+        aiResultsList.appendChild(row);
 
     } catch (e) {
         aiErrorIndicator.innerText = e.message;
