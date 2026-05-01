@@ -5,96 +5,62 @@
  * ============================================================
  */
 
+const checkRdapWithFallback = async (primaryUrl, domain) => {
+    try {
+        if (!window.rdapBootstrapCache) {
+            const res = await fetch('https://data.iana.org/rdap/dns.json');
+            const data = await res.json();
+            window.rdapBootstrapCache = {};
+            data.services.forEach(service => {
+                const tlds = service[0];
+                const urls = service[1];
+                tlds.forEach(tld => { window.rdapBootstrapCache[tld] = urls[0]; });
+            });
+        }
+
+        let primaryStatus = 0;
+        if (primaryUrl) {
+            try {
+                const response = await fetch(primaryUrl);
+                primaryStatus = response.status;
+                if (primaryStatus === 200) return "TAKEN";
+                if (primaryStatus === 429) return "RATE_LIMIT";
+            } catch (e) {
+                // Primary failed (e.g. DNS or CORS error), proceed to fallback
+            }
+        }
+
+        const tld = domain.split('.').pop();
+        const baseUrl = window.rdapBootstrapCache[tld];
+        
+        if (!baseUrl) {
+            if (primaryStatus === 404) return "AVAILABLE";
+            return "UNSUPPORTED_TLD";
+        }
+
+        if (primaryUrl && primaryUrl.startsWith(baseUrl)) {
+            if (primaryStatus === 404) return "AVAILABLE";
+            return "ERROR";
+        }
+
+        const fallbackResponse = await fetch(`${baseUrl}domain/${domain}`);
+        if (fallbackResponse.status === 404) return "AVAILABLE";
+        if (fallbackResponse.status === 200) return "TAKEN";
+        if (fallbackResponse.status === 429) return "RATE_LIMIT";
+
+        return "ERROR";
+    } catch (e) {
+        return "ERROR";
+    }
+};
+
 const PROVIDERS = {
-    icann_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                if (!window.rdapBootstrapCache) {
-                    const res = await fetch('https://data.iana.org/rdap/dns.json');
-                    const data = await res.json();
-                    window.rdapBootstrapCache = {};
-                    data.services.forEach(service => {
-                        const tlds = service[0];
-                        const urls = service[1];
-                        tlds.forEach(tld => {
-                            window.rdapBootstrapCache[tld] = urls[0];
-                        });
-                    });
-                }
-
-                const tld = domain.split('.').pop();
-                const baseUrl = window.rdapBootstrapCache[tld];
-
-                if (!baseUrl) return "UNSUPPORTED_TLD";
-
-                const response = await fetch(`${baseUrl}domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.org/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                return "RATE_LIMIT";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    google_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://pubapi.registry.google/rdap/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    godaddy_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.godaddy/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    hostinger: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.hostinger.com/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    namecheap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.namecheap.com/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
+    icann_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(null, domain) },
+    rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.org/domain/${domain}`, domain) },
+    google_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://pubapi.registry.google/rdap/domain/${domain}`, domain) },
+    godaddy_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.nic.godaddy/domain/${domain}`, domain) },
+    hostinger: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.hostinger.com/domain/${domain}`, domain) },
+    namecheap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.namecheap.com/domain/${domain}`, domain) },
     godaddy: {
         type: 'SCRAPE',
         url: (d) => `https://www.godaddy.com/en-pk/domainsearch/find?domainToCheck=${d}`,
@@ -117,126 +83,16 @@ const PROVIDERS = {
             return "UNKNOWN";
         }
     },
-    verisign_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.verisign.com/com/v1/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    pir_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.publicinterestregistry.org/rdap/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    identity_digital_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.identitydigital.services/rdap/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    nominet_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.nominet.uk/uk/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    eurid_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.eurid.eu/rdap/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    afnic_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.nic.fr/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    cira_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.ca/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    nicbr_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.registro.br/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    cnnic_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.cnnic.cn/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    },
-    amazon_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                const response = await fetch(`https://rdap.nic.amazon/rdap/domain/${domain}`);
-                if (response.status === 404) return "AVAILABLE";
-                if (response.status === 200) return "TAKEN";
-                if (response.status === 429) return "RATE_LIMIT";
-                return "ERROR";
-            } catch (e) { return "ERROR"; }
-        }
-    }
+    verisign_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.verisign.com/com/v1/domain/${domain}`, domain) },
+    pir_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.publicinterestregistry.org/rdap/domain/${domain}`, domain) },
+    identity_digital_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.identitydigital.services/rdap/domain/${domain}`, domain) },
+    nominet_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.nominet.uk/uk/domain/${domain}`, domain) },
+    eurid_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.eurid.eu/rdap/domain/${domain}`, domain) },
+    afnic_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.nic.fr/domain/${domain}`, domain) },
+    cira_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.ca.fury.ca/rdap/domain/${domain}`, domain) },
+    nicbr_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.registro.br/domain/${domain}`, domain) },
+    cnnic_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.cnnic.cn/domain/${domain}`, domain) },
+    amazon_rdap: { type: 'API', check: async (domain) => checkRdapWithFallback(`https://rdap.nominet.uk/amazon/domain/${domain}`, domain) }
 };
 
 // ==========================================
@@ -246,6 +102,7 @@ const DEFAULT_TLDS = ['.com', '.net', '.org', '.io', '.ai', '.app', '.dev', '.co
 const tldContainer = document.getElementById('tldContainer');
 const customTldInput = document.getElementById('customTldInput');
 const addCustomTldBtn = document.getElementById('addCustomTldBtn');
+const selectAllTldsBtn = document.getElementById('selectAllTldsBtn');
 
 function createTldCheckbox(tld, isChecked = false) {
     const label = document.createElement('label');
@@ -278,6 +135,27 @@ function addCustomTld() {
 
 addCustomTldBtn.addEventListener('click', addCustomTld);
 customTldInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addCustomTld(); });
+function updateSelectAllBtnState() {
+    const checkboxes = document.querySelectorAll('.tld-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    selectAllTldsBtn.innerText = allChecked ? "Deselect All" : "Select All";
+}
+
+tldContainer.addEventListener('change', (e) => {
+    if (e.target.classList.contains('tld-checkbox')) {
+        updateSelectAllBtnState();
+    }
+});
+
+selectAllTldsBtn.addEventListener('click', () => {
+    const checkboxes = document.querySelectorAll('.tld-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+    updateSelectAllBtnState();
+});
+
+// Initial state
+updateSelectAllBtnState();
 
 
 // ==========================================
