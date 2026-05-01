@@ -6,6 +6,36 @@
  */
 
 const PROVIDERS = {
+    icann_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                if (!window.rdapBootstrapCache) {
+                    const res = await fetch('https://data.iana.org/rdap/dns.json');
+                    const data = await res.json();
+                    window.rdapBootstrapCache = {};
+                    data.services.forEach(service => {
+                        const tlds = service[0];
+                        const urls = service[1];
+                        tlds.forEach(tld => {
+                            window.rdapBootstrapCache[tld] = urls[0];
+                        });
+                    });
+                }
+
+                const tld = domain.split('.').pop();
+                const baseUrl = window.rdapBootstrapCache[tld];
+
+                if (!baseUrl) return "UNSUPPORTED_TLD";
+
+                const response = await fetch(`${baseUrl}domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
     rdap: {
         type: 'API',
         check: async (domain) => {
@@ -17,43 +47,58 @@ const PROVIDERS = {
             } catch (e) { return "ERROR"; }
         }
     },
+    google_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://pubapi.registry.google/rdap/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    godaddy_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.godaddy/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
     hostinger: {
-        type: 'SCRAPE',
-        url: (d) => `https://www.hostinger.com/domain-name-results?domain=${d}`,
-        wait: 5000,
-        func: (domainToCheck) => {
-            const text = document.body.innerText.toLowerCase();
-            const domainLower = domainToCheck.toLowerCase();
-            if (text.includes("verify you are human") || text.includes("cloudflare")) return "CLOUDFLARE";
-            const isTaken = !!document.querySelector('.h-found-domain-cards-item__domain-taken-text') || 
-                            !!document.querySelector('.h-domain-finder-results__no-results') ||
-                            text.includes(`${domainLower} is already taken`);
-            if (isTaken) return "TAKEN";
-            const isAvail = !!document.querySelector('.h-domain-search-card__badge--success') || 
-                            !!document.querySelector('[data-qa="add-to-cart-button"]') ||
-                            text.includes("exact match");
-            return isAvail ? "AVAILABLE" : "UNKNOWN";
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.hostinger.com/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
         }
     },
     namecheap: {
-        type: 'SCRAPE',
-        url: (d) => `https://www.namecheap.com/domains/registration/results/?domain=${d}`,
-        wait: 16000,
-        func: (domainToCheck) => {
-            const text = document.body.innerText.toLowerCase();
-            if (text.includes("verify you are human") || text.includes("cloudflare")) return "CLOUDFLARE";
-            const exactMatchCard = document.querySelector('.standard-container article');
-            if (!exactMatchCard) return "LOADING_TIMEOUT";
-            const isTaken = exactMatchCard.classList.contains('unavailable') || !!exactMatchCard.querySelector('.label.taken') || !!exactMatchCard.querySelector('.domain-button button.domain-agents');
-            if (isTaken) return "TAKEN";
-            const isAvailable = exactMatchCard.classList.contains('available') || !!exactMatchCard.querySelector('.domain-button button.available') || exactMatchCard.innerText.toLowerCase().includes("is available");
-            return isAvailable ? "AVAILABLE" : "UNKNOWN";
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.namecheap.com/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
         }
     },
     godaddy: {
         type: 'SCRAPE',
         url: (d) => `https://www.godaddy.com/en-pk/domainsearch/find?domainToCheck=${d}`,
-        wait: 8000, 
+        wait: 8000,
         func: (domainToCheck) => {
             const text = document.body.innerText.toLowerCase();
             const domainLower = domainToCheck.toLowerCase();
@@ -70,6 +115,126 @@ const PROVIDERS = {
                 if (cardText.includes(domainLower) && !cardText.includes("alternative")) return "AVAILABLE";
             }
             return "UNKNOWN";
+        }
+    },
+    verisign_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.verisign.com/com/v1/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    pir_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.publicinterestregistry.org/rdap/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    identity_digital_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.identitydigital.services/rdap/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    nominet_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.nominet.uk/uk/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    eurid_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.eurid.eu/rdap/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    afnic_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.nic.fr/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    cira_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.ca/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    nicbr_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.registro.br/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    cnnic_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.cnnic.cn/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
+        }
+    },
+    amazon_rdap: {
+        type: 'API',
+        check: async (domain) => {
+            try {
+                const response = await fetch(`https://rdap.nic.amazon/rdap/domain/${domain}`);
+                if (response.status === 404) return "AVAILABLE";
+                if (response.status === 200) return "TAKEN";
+                if (response.status === 429) return "RATE_LIMIT";
+                return "ERROR";
+            } catch (e) { return "ERROR"; }
         }
     }
 };
@@ -132,10 +297,10 @@ async function saveSessionData(sessionObj, skipRenderList = false) {
     const idx = savedSessions.findIndex(s => s.id === sessionObj.id);
     if (idx >= 0) savedSessions[idx] = sessionObj;
     else savedSessions.unshift(sessionObj);
-    
+
     // Fire and forget storage update to prevent blocking
     chrome.storage.local.set({ dcp_sessions: savedSessions });
-    
+
     if (!skipRenderList) {
         renderSessionList();
     }
@@ -176,7 +341,7 @@ document.getElementById('clearAllBtn').addEventListener('click', async () => {
 function renderSessionList() {
     const container = document.getElementById('sessionLog');
     container.innerHTML = '';
-    
+
     if (savedSessions.length === 0) {
         container.innerHTML = '<div style="color:var(--text-muted);text-align:center;margin-top:20px;">No saved sessions yet.</div>';
         return;
@@ -185,7 +350,7 @@ function renderSessionList() {
     savedSessions.forEach(session => {
         const div = document.createElement('div');
         div.className = 'session-item';
-        
+
         div.innerHTML = `
             <div class="session-header">
                 <div class="session-name">
@@ -211,7 +376,7 @@ function renderSessionList() {
     });
     container.querySelectorAll('.del-btn').forEach(btn => {
         btn.onclick = () => {
-            if(confirm("Delete this session?")) deleteSession(btn.getAttribute('data-id'));
+            if (confirm("Delete this session?")) deleteSession(btn.getAttribute('data-id'));
         };
     });
     container.querySelectorAll('.view-btn').forEach(btn => {
@@ -242,14 +407,14 @@ function generateCSV(grid, tlds) {
 function triggerCSVDownload(csvContent, filename) {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
+
     // Universal trigger for blob downloads without strictly requiring bg worker permissions
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
-    
+
     setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -288,7 +453,7 @@ function buildTableHTML(grid, tlds, filterVal = 'ALL') {
                 const hasAvail = Object.values(tldData).includes('AVAILABLE');
                 if (!hasAvail) return;
             } else {
-                if (tldData[filterVal] !== 'AVAILABLE') return; 
+                if (tldData[filterVal] !== 'AVAILABLE') return;
             }
         }
 
@@ -299,7 +464,7 @@ function buildTableHTML(grid, tlds, filterVal = 'ALL') {
             if (stat === 'AVAILABLE') icon = '<span class="status-avail">✔</span>';
             else if (stat === 'TAKEN') icon = '<span class="status-taken">✖</span>';
             else if (stat !== 'PENDING') icon = `<span class="status-error" title="${stat}">!</span>`;
-            
+
             html += `<td>${icon}</td>`;
         });
         html += '</tr>';
@@ -312,7 +477,7 @@ function renderCurrentTable() {
     if (!activeSessionId) return;
     const session = savedSessions.find(s => s.id === activeSessionId);
     if (!session) return;
-    
+
     const filterVal = document.getElementById('tldFilter').value;
     document.getElementById('availLog').innerHTML = buildTableHTML(session.grid, session.tlds, filterVal);
 }
@@ -327,11 +492,11 @@ function openOverlayView(sessionId) {
     const session = savedSessions.find(s => s.id === sessionId);
     if (!session) return;
     activeOverlaySessionId = sessionId;
-    
+
     document.getElementById('overlayTitle').textContent = session.name;
     document.getElementById('overlayMeta').textContent = `Total Domains Checked: ${Object.keys(session.grid).length}`;
     document.getElementById('overlayTableArea').innerHTML = buildTableHTML(session.grid, session.tlds, 'ALL');
-    
+
     overlay.style.display = 'flex';
 }
 
@@ -350,7 +515,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     const rawInput = document.getElementById('domainList').value;
     const providerKey = document.getElementById('providerSelect').value;
     const provider = PROVIDERS[providerKey];
-    
+
     const selectedTlds = Array.from(document.querySelectorAll('.tld-checkbox:checked')).map(cb => cb.value);
     if (selectedTlds.length === 0) return alert("Please select or add at least one domain extension (TLD).");
 
@@ -362,7 +527,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     const scanQueue = [];
 
     rawNames.forEach(name => {
-        const cleanName = name.split('.')[0].toLowerCase(); 
+        const cleanName = name.split('.')[0].toLowerCase();
         currentGrid[cleanName] = {};
         selectedTlds.forEach(tld => {
             currentGrid[cleanName][tld] = 'PENDING';
@@ -373,7 +538,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     // Initialize & Save New Session
     activeSessionId = Date.now().toString();
     const dateStr = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString();
-    
+
     const newSession = {
         id: activeSessionId,
         name: `Scan ${dateStr}`,
@@ -381,9 +546,9 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         grid: currentGrid,
         status: 'RUNNING'
     };
-    
+
     // Render list immediately for the new session creation
-    await saveSessionData(newSession, false); 
+    await saveSessionData(newSession, false);
 
     // UI State Management
     isAborted = false;
@@ -394,7 +559,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     const exportBtn = document.getElementById('exportBtn');
     const filterDropdown = document.getElementById('tldFilter');
     const fullLog = document.getElementById('fullLog');
-    
+
     btn.disabled = true;
     stopBtn.style.display = 'block';
     stopBtn.disabled = false;
@@ -478,18 +643,18 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     }
 
     if (workerTab) chrome.tabs.remove(workerTab.id);
-    
+
     // Final UI Cleanup
     btn.disabled = false;
     stopBtn.style.display = 'none';
     spinner.style.display = 'none';
     btnText.textContent = "Scan Availability";
     exportBtn.disabled = false;
-    
+
     log(`[COMPLETE] Session finished, Data saved | Found: ${totalFoundAvailable}`, 'sys');
-    
+
     const finalSess = savedSessions.find(s => s.id === activeSessionId);
-    if(finalSess) {
+    if (finalSess) {
         finalSess.status = 'COMPLETED';
         await saveSessionData(finalSess, false); // Final save, force list render to update any states if necessary
     }
