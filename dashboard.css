@@ -367,6 +367,11 @@ button#startBtn, button#stopBtn { font-family: inherit; font-weight: 600; border
 .overlay-close:hover { background: var(--danger); color: white; border-color: var(--danger); }
 .overlay-content { flex: 1; background: var(--terminal-bg); color: var(--terminal-text); border-radius: 12px; overflow-y: auto; border: 1px solid var(--border); }
 
+/* API HELP LINK HOVER */
+.api-help-link:hover {
+  color: var(--brand-lime) !important;
+}
+
 /* AI BUTTON HOVER EFFECTS */
 .ai-gen-btn:hover {
   background-color: var(--brand-lime) !important;
