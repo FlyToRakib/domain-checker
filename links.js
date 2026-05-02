@@ -4,11 +4,11 @@
 const APP_LINKS = {
   degirdHome: "https://degird.com",
   degirdProducts: "https://degird.com/products#extensions",
-  reviewUs: "https://chromewebstore.google.com/detail/domain-availability-checker/EXTENSION_ID_HERE/reviews",
+  reviewUs: "https://chromewebstore.google.com/detail/domain-availability-check/njigomaphabombidlgemlkgebnflhkgp/reviews",
   moreTools: "https://chromewebstore.google.com/search/degird",
-  privacy: "https://degird.com/privacy",
+  privacy: "https://docs.google.com/document/d/1cIj2sJP_ajgFfz4jVIKW7IZbifFWWxoKMat5dRiFI3s/edit?usp=sharing",
   support: "https://degird.com/support",
-  apiDocGuide: "https://aistudio.google.com/apikey"
+  apiDocGuide: "https://wpinlearn.com/google-ai-studio-api-key"
 };
 
 function initDynamicLinks() {

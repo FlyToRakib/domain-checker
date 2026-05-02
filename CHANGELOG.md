@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-05-02
+### Added (Major Release)
+- **AI Brand Name Generator:** Full-featured AI-powered domain name generator using Google Gemini Flash, accessible via the "✨ AI: Generate Brand Name" button.
+  - **Generate New Brand** tab: Create brand names from scratch using niche, description, style, and flowing rules.
+  - **Make Brand Unique** tab: Regenerate existing domains with configurable prefix/suffix and custom rules.
+- **AI Process Monitor:** Real-time generation feedback with centered loading spinner, bordered result cards, Append All and Copy All actions.
+- **Global Header & Footer:** Unified dark navigation bar with extension branding and "Powered by DEGIRD" link. Footer with Review Us, More Tools, Privacy, and Support links.
+- **Dynamic Link Management:** Centralized `links.js` module using `data-link` attributes — all outbound URLs managed from a single config object.
+- **API Help Guide:** Inline "How to Create API" help link with question icon next to the API key field, linking to Google AI Studio.
+
+### Changed
+- **Unified Dark Theme:** Header, body, and footer share consistent `#111827` background for seamless appearance.
+- **Process Monitor Color:** All terminal/monitor backgrounds updated to `#020711` for deeper contrast.
+- **Model Simplification:** Removed Gemma model support; hardcoded to Google Gemini Flash (`gemini-flash-latest`) for reliability.
+- **Container Design:** Removed border-radius, border, and box-shadow from main container for edge-to-edge seamless layout.
+- **Overlay Z-Index:** AI popup overlay now renders above all page elements including the header (`z-index: 10000`).
+- **Session Overlay:** Renders below header with proper top offset for consistent navigation.
+
+### Removed
+- Old in-body header (title + version badge + description block) — replaced by global header.
+
+---
+
 ## [1.2.0] - 2026-04-05
 ### Added (Major Feature Update)
 - **Persistent Sessions:** Scans are now automatically saved to local storage (`chrome.storage.local`). Users can rename, delete, or view past sessions anytime without losing data on page reload.

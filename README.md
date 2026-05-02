@@ -1,11 +1,12 @@
-# Domain Checker Pro
+# Domain Availability Checker
 
-**Version 1.2.0 | Stable Production**
+**Version 2.0.0 | Stable Production**
 
-A professional-grade, multi-provider bulk domain availability aggregator. Built as a Chrome Extension (Manifest V3), it combines high-speed API checks with "battle-proof" DOM scraping to ensure 100% accurate results. 
+AI-powered bulk domain availability checker across multiple TLDs. Fast RDAP checks, plus an AI brand name generator, CSV export, and local saving. Built as a Chrome Extension (Manifest V3).
 
 ## 🚀 Key Features
 
+* **AI Brand Name Generator:** Built-in AI-powered domain name generator using Google Gemini Flash. Two modes: Generate New Brand (from scratch) and Make Brand Unique (refine existing domains with prefixes/suffixes).
 * **Persistent Session Memory:** Never lose a scan again. Scans are automatically saved to your local browser storage. You can safely close the extension, return later, and view or export your historical data.
 * **Dynamic Grid Analytics:** Results are rendered in a clean, multi-dimensional table, giving you a bird's-eye view of keyword availability across multiple extensions simultaneously.
 * **Smart Filtering & CSV Export:** Filter results instantly by specific TLDs, and export your curated data directly to a `.csv` file for Excel or Google Sheets integration.
@@ -17,6 +18,7 @@ A professional-grade, multi-provider bulk domain availability aggregator. Built 
     * **Namecheap (Scraper):** Isolated article scanning to prevent "alternative suggestion" false positives.
     * **GoDaddy (Scraper):** Precise `data-cy` attribute targeting and ARIA accessibility checks.
 * **Process Control:** Integrated **Kill Switch (Stop Scan)** and visual spinners for real-time status tracking.
+* **Global Header & Footer:** Unified dark navigation bar with dynamic outbound link management.
 
 ## 🛠️ Installation
 
@@ -24,17 +26,19 @@ A professional-grade, multi-provider bulk domain availability aggregator. Built 
 2.  Open Chrome and navigate to `chrome://extensions/`.
 3.  Enable **Developer mode** (top right).
 4.  Click **Load unpacked** and select the project folder.
-5.  Pin the **Domain Checker Pro** icon to your toolbar.
+5.  Pin the **Domain Availability Checker** icon to your toolbar.
 
 ## 💻 Tech Stack
 
 * **Logic:** Vanilla JavaScript (ES6+) utilizing the **Strategy Pattern** for provider modularity.
 * **Storage:** Chrome Extension API (`chrome.storage.local`).
+* **AI:** Google Gemini Flash API (`gemini-flash-latest`) via Google AI Studio REST endpoint.
 * **UI:** Custom CSS Grid/Flexbox architecture with a modern SaaS aesthetic (Inter & JetBrains Mono typography).
+* **Link Management:** Centralized `links.js` module with `data-link` attribute resolution.
 
 ## ✨ AI Brand Name Generator
 
-The extension includes a built-in **AI-powered brand name generator** using Google Gemini / Gemma models. It operates in two modes:
+The extension includes a built-in **AI-powered brand name generator** using Google Gemini. It operates in two modes:
 
 | Tab | Purpose |
 |---|---|
@@ -46,7 +50,6 @@ The extension includes a built-in **AI-powered brand name generator** using Goog
 1. Get a free API key from [Google AI Studio](https://aistudio.google.com/apikey)
 2. Open the AI popup via **"✨ AI: Generate Brand Name"** button
 3. Paste your API key in the header input field (saved automatically to local storage)
-4. Select your model: **Gemma 4** or **Gemini**
 
 ---
 

@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Domain Availability Checker - Bulk Search",
   "short_name": "Domain Checker",
-  "version": "1.2.0",
-  "description": "Bulk Domain Availability Checker for Multiple TLDs. Fast RDAP & Live Registrar Lookup with CSV Export & Local Saving.",
+  "version": "2.0.0",
+  "description": "AI-powered bulk domain availability checker. Features AI Brand Name Generator, multi-TLD RDAP checks, CSV export & local saving.",
   "icons": {
     "16": "assets/icon16.png",
     "32": "assets/icon32.png",
