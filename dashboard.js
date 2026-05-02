@@ -617,15 +617,44 @@ function setupTagInput(containerId, inputId) {
     });
 }
 
+// Tabs Logic
+const tabGenerateNew = document.getElementById('tabGenerateNew');
+const tabMakeUnique = document.getElementById('tabMakeUnique');
+const contentGenerateNew = document.getElementById('contentGenerateNew');
+const contentMakeUnique = document.getElementById('contentMakeUnique');
+
+tabGenerateNew.addEventListener('click', () => {
+    tabGenerateNew.style.borderBottomColor = 'var(--brand-lime)';
+    tabGenerateNew.style.color = 'var(--brand-lime)';
+    
+    tabMakeUnique.style.borderBottomColor = 'transparent';
+    tabMakeUnique.style.color = 'var(--text-muted)';
+    
+    contentGenerateNew.style.display = 'flex';
+    contentMakeUnique.style.display = 'none';
+});
+
+tabMakeUnique.addEventListener('click', () => {
+    tabMakeUnique.style.borderBottomColor = 'var(--brand-lime)';
+    tabMakeUnique.style.color = 'var(--brand-lime)';
+    
+    tabGenerateNew.style.borderBottomColor = 'transparent';
+    tabGenerateNew.style.color = 'var(--text-muted)';
+    
+    contentMakeUnique.style.display = 'flex';
+    contentGenerateNew.style.display = 'none';
+});
+
 setupTagInput('aiRulesContainer', 'aiRulesInput');
 setupTagInput('aiStyleContainer', 'aiStyleInput');
+setupTagInput('uniqueRulesContainer', 'uniqueRulesInput');
 
 function getTagValues(containerId) {
     const container = document.getElementById(containerId);
     return Array.from(container.querySelectorAll('.tag')).map(t => t.childNodes[0].nodeValue.trim());
 }
 
-aiGenerateBtn.addEventListener('click', async () => {
+async function executeAiGeneration(promptTemplate, triggerBtn) {
     const apiKey = aiApiKey.value.trim();
     if (!apiKey) {
         aiErrorIndicator.innerText = "Please enter a Gemini API Key.";
@@ -634,37 +663,10 @@ aiGenerateBtn.addEventListener('click', async () => {
     }
 
     const model = document.getElementById('aiModel').value;
-    const count = document.getElementById('aiCount').value;
-    const charLength = document.getElementById('aiCharLength').value;
-    const niche = document.getElementById('aiNiche').value.trim();
-    const description = document.getElementById('aiDescription').value.trim();
-    const rules = getTagValues('aiRulesContainer').join(', ');
-    const style = getTagValues('aiStyleContainer').join(', ');
-    const whatToAvoid = document.getElementById('aiWhatToAvoid').value.trim();
-    const responseSchema = "Output ONLY a single line of comma-separated domain name keywords. No extra spaces, no numbering, no explanations, no extra text, no line breaks, no quotes. Follow exactly this format: name, name, name";
-
-    let affixPrompt = "";
-    if (aiEnablePrefix.checked && aiPrefixes.value.trim()) affixPrompt += `Prefix character length exactly: ${aiPrefixes.value.trim()}\n`;
-    if (aiEnableSuffix.checked && aiSuffixes.value.trim()) affixPrompt += `Suffix character length exactly: ${aiSuffixes.value.trim()}\n`;
-
-    const promptTemplate = `
-Generate exactly ${count} domain name ideas.
-Niche Category: ${niche}
-Brand Description: ${description}
-Max Character Length: ${charLength}
-Flowing Rules: ${rules}
-Style: ${style}
-${affixPrompt}
-What to avoid:
-${whatToAvoid}
-
-Response Schema:
-${responseSchema}
-`;
-
+    
     aiErrorIndicator.style.display = 'none';
     aiLoadingIndicator.style.display = 'block';
-    aiGenerateBtn.disabled = true;
+    triggerBtn.disabled = true;
     aiResultsList.innerHTML = '';
 
     try {
@@ -738,6 +740,65 @@ ${responseSchema}
         aiErrorIndicator.style.display = 'block';
     } finally {
         aiLoadingIndicator.style.display = 'none';
-        aiGenerateBtn.disabled = false;
+        triggerBtn.disabled = false;
     }
+}
+
+aiGenerateBtn.addEventListener('click', () => {
+    const count = document.getElementById('aiCount').value;
+    const charLength = document.getElementById('aiCharLength').value;
+    const niche = document.getElementById('aiNiche').value.trim();
+    const description = document.getElementById('aiDescription').value.trim();
+    const rules = getTagValues('aiRulesContainer').join(', ');
+    const style = getTagValues('aiStyleContainer').join(', ');
+    const whatToAvoid = document.getElementById('aiWhatToAvoid').value.trim();
+    const responseSchema = "Output ONLY a single line of comma-separated domain name keywords. No extra spaces, no numbering, no explanations, no extra text, no line breaks, no quotes. Follow exactly this format: name, name, name";
+
+    const promptTemplate = `
+Generate exactly ${count} domain name ideas.
+Niche Category: ${niche}
+Brand Description: ${description}
+Max Character Length: ${charLength}
+Flowing Rules: ${rules}
+Style: ${style}
+What to avoid:
+${whatToAvoid}
+
+Response Schema:
+${responseSchema}
+`;
+
+    executeAiGeneration(promptTemplate, aiGenerateBtn);
 });
+
+const aiRegenerateUniqueBtn = document.getElementById('aiRegenerateUniqueBtn');
+aiRegenerateUniqueBtn.addEventListener('click', () => {
+    const baseDomains = document.getElementById('uniqueBaseDomains').value.trim();
+    const category = document.getElementById('uniqueCategory').value.trim();
+    
+    if (!baseDomains) {
+        aiErrorIndicator.innerText = "Please enter at least one base domain.";
+        aiErrorIndicator.style.display = 'block';
+        return;
+    }
+
+    const rules = getTagValues('uniqueRulesContainer').join(', ');
+    const responseSchema = "Output ONLY a single line of comma-separated domain name keywords. No extra spaces, no numbering, no explanations, no extra text, no line breaks, no quotes. Follow exactly this format: name, name, name";
+
+    let affixPrompt = "";
+    if (aiEnablePrefix.checked && aiPrefixes.value.trim()) affixPrompt += `Prefix character length exactly: ${aiPrefixes.value.trim()}\n`;
+    if (aiEnableSuffix.checked && aiSuffixes.value.trim()) affixPrompt += `Suffix character length exactly: ${aiSuffixes.value.trim()}\n`;
+
+    const promptTemplate = `
+Task: Make the following base domains unique by applying prefixes and/or suffixes or logical variations based on the rules. Return ONLY the finalized domain names.
+Brand Category: ${category}
+Base Domains: ${baseDomains}
+Flowing Rules: ${rules}
+${affixPrompt}
+
+Response Schema:
+${responseSchema}
+`;
+
+    executeAiGeneration(promptTemplate, aiRegenerateUniqueBtn);
+});
