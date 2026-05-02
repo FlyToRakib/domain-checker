@@ -34,7 +34,120 @@ body {
   color: var(--text);
   margin: 0;
   padding: 40px 20px;
+  padding-top: 80px;
+  padding-bottom: 40px;
   line-height: 1.5;
+}
+
+/* GLOBAL HEADER */
+.global-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9000;
+  height: 52px;
+  background: #1a2332;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  font-family: 'Inter', 'Roboto', -apple-system, sans-serif;
+}
+.global-header .gh-brand {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0f2f5;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.global-header .gh-nav {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  height: 100%;
+}
+.global-header .gh-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8b95a5;
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  position: relative;
+}
+.global-header .gh-nav-item:hover {
+  color: #c8d0db;
+}
+.global-header .gh-nav-item.active {
+  color: #f0f2f5;
+  border-bottom-color: var(--brand-lime);
+}
+.global-header .gh-nav-item.active .gh-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--brand-lime);
+  border-radius: 50%;
+}
+.global-header .gh-nav-item .gh-dot {
+  display: none;
+}
+.global-header .gh-powered {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5a6475;
+  white-space: nowrap;
+}
+.global-header .gh-powered a {
+  color: var(--brand-lime);
+  text-decoration: none;
+  font-weight: 700;
+}
+.global-header .gh-powered a:hover {
+  text-decoration: underline;
+}
+
+/* GLOBAL FOOTER */
+.global-footer {
+  background: #1a2332;
+  padding: 28px 32px 22px;
+  text-align: center;
+  margin-top: 48px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.global-footer .gf-links {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 14px;
+}
+.global-footer .gf-links a {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5a6475;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.global-footer .gf-links a:hover {
+  color: #c8d0db;
+}
+.global-footer .gf-copy {
+  font-size: 11px;
+  color: #3d4654;
+  letter-spacing: 0.03em;
 }
 
 .container {

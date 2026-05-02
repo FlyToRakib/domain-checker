@@ -626,10 +626,10 @@ const contentMakeUnique = document.getElementById('contentMakeUnique');
 tabGenerateNew.addEventListener('click', () => {
     tabGenerateNew.style.borderBottomColor = 'var(--brand-lime)';
     tabGenerateNew.style.color = 'var(--brand-lime)';
-    
+
     tabMakeUnique.style.borderBottomColor = 'transparent';
     tabMakeUnique.style.color = 'var(--text-muted)';
-    
+
     contentGenerateNew.style.display = 'flex';
     contentMakeUnique.style.display = 'none';
 });
@@ -637,10 +637,10 @@ tabGenerateNew.addEventListener('click', () => {
 tabMakeUnique.addEventListener('click', () => {
     tabMakeUnique.style.borderBottomColor = 'var(--brand-lime)';
     tabMakeUnique.style.color = 'var(--brand-lime)';
-    
+
     tabGenerateNew.style.borderBottomColor = 'transparent';
     tabGenerateNew.style.color = 'var(--text-muted)';
-    
+
     contentMakeUnique.style.display = 'flex';
     contentGenerateNew.style.display = 'none';
 });
@@ -663,6 +663,7 @@ async function executeAiGeneration(promptTemplate, triggerBtn) {
     }
 
     const model = document.getElementById('aiModel').value;
+    const isGemma = model.includes('gemma');
 
     // Lock BOTH generate buttons to prevent override/double-click
     aiErrorIndicator.style.display = 'none';
@@ -684,12 +685,26 @@ async function executeAiGeneration(promptTemplate, triggerBtn) {
 
     try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        // Build industry-standard config adapter for Gemma/Gemini
+        const requestPayload = {
+            contents: [{ parts: [{ text: promptTemplate }] }]
+        };
+
+        if (isGemma) {
+            requestPayload.system_instruction = {
+                parts: [{ text: "Output ONLY a single line of comma-separated domain name keywords. No extra text, no reasoning, no thinking block, no explanations." }]
+            };
+            requestPayload.generationConfig = {
+                temperature: 0.1,
+                stopSequences: ["\n", "*", "<|"]
+            };
+        }
+
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: promptTemplate }] }]
-            })
+            body: JSON.stringify(requestPayload)
         });
 
         if (!response.ok) {
@@ -698,9 +713,14 @@ async function executeAiGeneration(promptTemplate, triggerBtn) {
         }
 
         const data = await response.json();
-        const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        let textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-        const domains = textResponse.split(',').map(d => d.trim().replace(/['"\[\]`]/g, '')).filter(d => d.length > 0);
+        // Battle-proof cleaning: Strip reasoning channels and unwanted symbols
+        if (isGemma) {
+            textResponse = textResponse.replace(/<\|channel>thought[\s\S]*?<channel\|>/g, '').trim();
+        }
+
+        const domains = textResponse.split(',').map(d => d.trim().replace(/['"\[\]`*]/g, '')).filter(d => d.length > 0);
 
         if (domains.length === 0) {
             throw new Error("No valid domains generated.");
@@ -803,7 +823,7 @@ ${responseSchema}
 aiRegenerateUniqueBtn.addEventListener('click', () => {
     const baseDomains = document.getElementById('uniqueBaseDomains').value.trim();
     const category = document.getElementById('uniqueCategory').value.trim();
-    
+
     if (!baseDomains) {
         aiErrorIndicator.innerText = "Please enter at least one base domain.";
         aiErrorIndicator.style.display = 'block';
@@ -829,4 +849,4 @@ ${responseSchema}
 `;
 
     executeAiGeneration(promptTemplate, aiRegenerateUniqueBtn);
-});
+});
