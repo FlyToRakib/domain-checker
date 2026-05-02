@@ -574,7 +574,7 @@ const aiPrefixes = document.getElementById('aiPrefixes');
 const aiEnableSuffix = document.getElementById('aiEnableSuffix');
 const aiSuffixes = document.getElementById('aiSuffixes');
 const aiGenerateBtn = document.getElementById('aiGenerateBtn');
-const aiLoadingIndicator = document.getElementById('aiLoadingIndicator');
+const aiRegenerateUniqueBtn = document.getElementById('aiRegenerateUniqueBtn');
 const aiErrorIndicator = document.getElementById('aiErrorIndicator');
 const aiResultsArea = document.getElementById('aiResultsArea');
 const aiResultsList = document.getElementById('aiResultsList');
@@ -663,11 +663,24 @@ async function executeAiGeneration(promptTemplate, triggerBtn) {
     }
 
     const model = document.getElementById('aiModel').value;
-    
+
+    // Lock BOTH generate buttons to prevent override/double-click
     aiErrorIndicator.style.display = 'none';
-    aiLoadingIndicator.style.display = 'block';
-    triggerBtn.disabled = true;
+    aiGenerateBtn.disabled = true;
+    aiGenerateBtn.classList.add('ai-locked');
+    aiRegenerateUniqueBtn.disabled = true;
+    aiRegenerateUniqueBtn.classList.add('ai-locked');
+
+    // Show centered loading spinner inside the process monitor
     aiResultsList.innerHTML = '';
+    const loadingEl = document.createElement('div');
+    loadingEl.className = 'ai-monitor-loading';
+    loadingEl.innerHTML = `
+        <div class="ai-spinner-ring"></div>
+        <div class="ai-spinner-label">Generating ideas with AI...</div>
+        <div class="ai-spinner-sublabel">Hang tight! Generation can take 10–60 seconds depending on the model and prompt complexity.</div>
+    `;
+    aiResultsList.appendChild(loadingEl);
 
     try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -695,52 +708,67 @@ async function executeAiGeneration(promptTemplate, triggerBtn) {
 
         const finalString = domains.join(', ');
 
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.flexDirection = 'column';
-        row.style.gap = '15px';
-        row.style.padding = '15px';
-        row.style.background = 'var(--surface-light)';
-        row.style.borderRadius = '6px';
+        // Clear the loading spinner
+        aiResultsList.innerHTML = '';
+
+        // Build bordered result card
+        const card = document.createElement('div');
+        card.className = 'ai-result-card';
 
         const nameEl = document.createElement('div');
+        nameEl.className = 'ai-result-text';
         nameEl.innerText = finalString;
-        nameEl.style.color = 'var(--text)';
-        nameEl.style.lineHeight = '1.6';
-        nameEl.style.fontFamily = "'JetBrains Mono', monospace";
-        nameEl.style.fontSize = '14px';
 
+        const actionsRow = document.createElement('div');
+        actionsRow.className = 'ai-result-actions';
+
+        // Append All button
         const appendBtn = document.createElement('button');
-        appendBtn.innerText = '➕ Append All';
-        appendBtn.className = 'ai-btn';
-        appendBtn.style.padding = '10px 15px';
-        appendBtn.style.background = 'var(--brand-lime)';
-        appendBtn.style.color = '#002719';
-        appendBtn.style.border = 'none';
-        appendBtn.style.borderRadius = '4px';
-        appendBtn.style.cursor = 'pointer';
-        appendBtn.style.fontWeight = 'bold';
-        appendBtn.style.alignSelf = 'flex-start';
+        appendBtn.className = 'ai-append-btn';
+        appendBtn.innerHTML = '➕ Append All';
 
         appendBtn.addEventListener('click', () => {
             const domainListEl = document.getElementById('domainList');
             const currentVals = domainListEl.value.trim();
             domainListEl.value = currentVals ? currentVals + (currentVals.endsWith(',') ? ' ' : ', ') + finalString : finalString;
-            appendBtn.innerText = '✔ All Appended';
-            appendBtn.style.background = '#4CAF50';
+            appendBtn.innerHTML = '✔ Appended';
             appendBtn.disabled = true;
+            // Close the overlay popup after appending
+            aiPopupOverlay.style.display = 'none';
         });
 
-        row.appendChild(nameEl);
-        row.appendChild(appendBtn);
-        aiResultsList.appendChild(row);
+        // Copy All button
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'ai-copy-btn';
+        copyBtn.innerHTML = '📋 Copy All';
+
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(finalString).then(() => {
+                copyBtn.innerHTML = '✔ Copied';
+                copyBtn.disabled = true;
+                setTimeout(() => {
+                    copyBtn.innerHTML = '📋 Copy All';
+                    copyBtn.disabled = false;
+                }, 2000);
+            });
+        });
+
+        actionsRow.appendChild(appendBtn);
+        actionsRow.appendChild(copyBtn);
+        card.appendChild(nameEl);
+        card.appendChild(actionsRow);
+        aiResultsList.appendChild(card);
 
     } catch (e) {
+        aiResultsList.innerHTML = '';
         aiErrorIndicator.innerText = e.message;
         aiErrorIndicator.style.display = 'block';
     } finally {
-        aiLoadingIndicator.style.display = 'none';
-        triggerBtn.disabled = false;
+        // Unlock BOTH buttons
+        aiGenerateBtn.disabled = false;
+        aiGenerateBtn.classList.remove('ai-locked');
+        aiRegenerateUniqueBtn.disabled = false;
+        aiRegenerateUniqueBtn.classList.remove('ai-locked');
     }
 }
 
@@ -771,7 +799,7 @@ ${responseSchema}
     executeAiGeneration(promptTemplate, aiGenerateBtn);
 });
 
-const aiRegenerateUniqueBtn = document.getElementById('aiRegenerateUniqueBtn');
+
 aiRegenerateUniqueBtn.addEventListener('click', () => {
     const baseDomains = document.getElementById('uniqueBaseDomains').value.trim();
     const category = document.getElementById('uniqueCategory').value.trim();

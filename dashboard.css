@@ -271,3 +271,106 @@ button#startBtn, button#stopBtn { font-family: inherit; font-weight: 600; border
   border-color: var(--brand-lime) !important;
   opacity: 0.9;
 }
+
+/* AI PROCESS MONITOR - RESULT CARD */
+.ai-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(174, 237, 34, 0.03);
+  border: 1px solid rgba(174, 237, 34, 0.15);
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
+}
+.ai-result-card:hover {
+  border-color: rgba(174, 237, 34, 0.35);
+}
+.ai-result-card .ai-result-text {
+  color: var(--terminal-text);
+  line-height: 1.7;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  word-break: break-word;
+}
+.ai-result-card .ai-result-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 12px;
+}
+.ai-result-card .ai-result-actions button {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-result-card .ai-result-actions .ai-append-btn {
+  background: var(--brand-lime);
+  color: #002719;
+}
+.ai-result-card .ai-result-actions .ai-append-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+.ai-result-card .ai-result-actions .ai-copy-btn {
+  background: rgba(255,255,255,0.08);
+  color: var(--terminal-text);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.ai-result-card .ai-result-actions .ai-copy-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.25);
+}
+.ai-result-card .ai-result-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* AI PROCESS MONITOR - CENTER LOADING SPINNER */
+.ai-monitor-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 16px;
+  padding: 40px 20px;
+}
+.ai-monitor-loading .ai-spinner-ring {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(174, 237, 34, 0.15);
+  border-top-color: var(--brand-lime);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+.ai-monitor-loading .ai-spinner-label {
+  color: var(--brand-lime);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ai-monitor-loading .ai-spinner-sublabel {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* AI GENERATE BUTTONS - LOCKED STATE */
+.ai-gen-btn:disabled,
+.ai-gen-btn.ai-locked {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
