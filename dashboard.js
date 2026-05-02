@@ -662,8 +662,7 @@ async function executeAiGeneration(promptTemplate, triggerBtn) {
         return;
     }
 
-    const model = document.getElementById('aiModel').value;
-    const isGemma = model.includes('gemma');
+    const model = 'gemini-flash-latest';
 
     // Lock BOTH generate buttons to prevent override/double-click
     aiErrorIndicator.style.display = 'none';
@@ -679,27 +678,16 @@ async function executeAiGeneration(promptTemplate, triggerBtn) {
     loadingEl.innerHTML = `
         <div class="ai-spinner-ring"></div>
         <div class="ai-spinner-label">Generating ideas with AI...</div>
-        <div class="ai-spinner-sublabel">Hang tight! Generation can take 10–60 seconds depending on the model and prompt complexity.</div>
+        <div class="ai-spinner-sublabel">Hang tight! Generation can take 10–60 seconds depending on prompt complexity.</div>
     `;
     aiResultsList.appendChild(loadingEl);
 
     try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-        // Build industry-standard config adapter for Gemma/Gemini
         const requestPayload = {
             contents: [{ parts: [{ text: promptTemplate }] }]
         };
-
-        if (isGemma) {
-            requestPayload.system_instruction = {
-                parts: [{ text: "Output ONLY a single line of comma-separated domain name keywords. No extra text, no reasoning, no thinking block, no explanations." }]
-            };
-            requestPayload.generationConfig = {
-                temperature: 0.1,
-                stopSequences: ["\n", "*", "<|"]
-            };
-        }
 
         const response = await fetch(url, {
             method: 'POST',
@@ -714,11 +702,6 @@ async function executeAiGeneration(promptTemplate, triggerBtn) {
 
         const data = await response.json();
         let textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-        // Battle-proof cleaning: Strip reasoning channels and unwanted symbols
-        if (isGemma) {
-            textResponse = textResponse.replace(/<\|channel>thought[\s\S]*?<channel\|>/g, '').trim();
-        }
 
         const domains = textResponse.split(',').map(d => d.trim().replace(/['"\[\]`*]/g, '')).filter(d => d.length > 0);
 

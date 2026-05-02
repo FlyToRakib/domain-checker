@@ -7,7 +7,8 @@ const APP_LINKS = {
   reviewUs: "https://chromewebstore.google.com/detail/domain-availability-checker/EXTENSION_ID_HERE/reviews",
   moreTools: "https://chromewebstore.google.com/search/degird",
   privacy: "https://degird.com/privacy",
-  support: "https://degird.com/support"
+  support: "https://degird.com/support",
+  apiDocGuide: "https://aistudio.google.com/apikey"
 };
 
 function initDynamicLinks() {

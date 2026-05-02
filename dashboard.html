@@ -18,9 +18,9 @@
   <div class="container">
 
     <p class="app-description"
-      style="margin-top: 0; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 24px;">AI-Powered
-      bulk domain availability checker across multiple TLDs fast via RDAP and live registrars. Features CSV export &amp; local
-      saving.</p>
+      style="margin-top: 0; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
+      AI-powered bulk domain availability checker across multiple TLDs. Fast RDAP checks, plus an AI brand name
+      generator, CSV export, and local saving.</p>
 
     <div class="config-grid">
       <div class="field-group">
@@ -132,17 +132,23 @@
         <div>
           <h2 style="color: var(--text); margin: 0;">✨ AI Brand Name Generator</h2>
           <p class="app-description" style="margin: 2px 0 0 0; font-size: 13px;">Generate domain ideas using Google
-            Gemini/Gemma models.</p>
+            Gemini.</p>
         </div>
         <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
-          <input type="password" id="aiApiKey" placeholder="Gemini API Key"
-            style="padding: 8px 12px; height: 36px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background-color: var(--surface); color: var(--text); width: 150px;"
+          <a href="#" data-link="apiDocGuide" target="_blank"
+            style="font-size: 11px; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 4px; white-space: nowrap; transition: color 0.2s;"
+            onmouseover="this.style.color='var(--brand-lime)'" onmouseout="this.style.color='var(--text-muted)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            How to Create API
+          </a>
+          <input type="password" id="aiApiKey" placeholder="Paste Google Studio API key"
+            style="padding: 8px 12px; height: 36px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background-color: var(--surface); color: var(--text); width: 220px;"
             title="Your API key is saved securely locally.">
-          <select id="aiModel"
-            style="padding: 8px 12px; height: 36px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background-color: var(--surface); color: var(--text);">
-            <option value="gemma-4-31b-it">Gemma 4</option>
-            <option value="gemini-flash-latest" selected>Gemini</option>
-          </select>
           <button id="closeAiPopupBtn" class="overlay-close" style="padding: 8px 16px; height: 36px;">Close</button>
         </div>
       </div>
