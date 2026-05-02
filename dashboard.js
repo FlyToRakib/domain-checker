@@ -641,7 +641,7 @@ aiGenerateBtn.addEventListener('click', async () => {
     const rules = getTagValues('aiRulesContainer').join(', ');
     const style = getTagValues('aiStyleContainer').join(', ');
     const negative = document.getElementById('aiNegative').value.trim();
-    const actionPrompt = "Output ONLY a single line of comma-separated domain name keywords. No extra spaces, no numbering, no explanations, no extra text, no line breaks, no quotes. Follow exactly this format: name, name, name";
+    const responseSchema = "Output ONLY a single line of comma-separated domain name keywords. No extra spaces, no numbering, no explanations, no extra text, no line breaks, no quotes. Follow exactly this format: name, name, name";
 
     let affixPrompt = "";
     if (aiEnablePrefix.checked && aiPrefixes.value.trim()) affixPrompt += `Prefix character length exactly: ${aiPrefixes.value.trim()}\n`;
@@ -659,7 +659,7 @@ What to avoid:
 ${negative}
 
 Response Schema:
-${actionPrompt}
+${responseSchema}
 `;
 
     aiErrorIndicator.style.display = 'none';
