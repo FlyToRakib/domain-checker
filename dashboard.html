@@ -209,17 +209,10 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="field-group">
-              <label>What to avoid</label>
-              <textarea id="aiNegative"
-                style="min-height: 80px;">No Hyphens, No Numbers, No Trademark Conflicts, No Double Letters, No Obscure Spellings</textarea>
-            </div>
-            <div class="field-group">
-              <label>Response Schema</label>
-              <textarea id="aiActionPrompt"
-                style="min-height: 80px;">Output ONLY a single line of comma-separated domain name keywords. No extra spaces, no numbering, no explanations, no extra text, no line breaks, no quotes. Follow exactly this format: name, name, name</textarea>
-            </div>
+          <div class="field-group">
+            <label>What to avoid</label>
+            <textarea id="aiNegative"
+              style="min-height: 80px;">No Hyphens, No Numbers, No Trademark Conflicts, No Double Letters, No Obscure Spellings</textarea>
           </div>
 
           <button id="aiGenerateBtn" class="ai-gen-btn"
