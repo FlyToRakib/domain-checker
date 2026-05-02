@@ -1,9 +1,0 @@
-const PROVIDERS = {
-    icann_rdap: {
-        type: 'API',
-        check: async (domain) => {
-            try {
-                if (!window.rdapBootstrapCache) {
-                    const res = await fetch('https://data.iana.org/rdap/dns.json');
-                    const data = await res.json();
-                    window.rdapBootstrapCache = {};
