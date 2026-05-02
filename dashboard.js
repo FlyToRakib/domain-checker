@@ -640,7 +640,7 @@ aiGenerateBtn.addEventListener('click', async () => {
     const description = document.getElementById('aiDescription').value.trim();
     const rules = getTagValues('aiRulesContainer').join(', ');
     const style = getTagValues('aiStyleContainer').join(', ');
-    const negative = document.getElementById('aiNegative').value.trim();
+    const whatToAvoid = document.getElementById('aiWhatToAvoid').value.trim();
     const responseSchema = "Output ONLY a single line of comma-separated domain name keywords. No extra spaces, no numbering, no explanations, no extra text, no line breaks, no quotes. Follow exactly this format: name, name, name";
 
     let affixPrompt = "";
@@ -656,7 +656,7 @@ Flowing Rules: ${rules}
 Style: ${style}
 ${affixPrompt}
 What to avoid:
-${negative}
+${whatToAvoid}
 
 Response Schema:
 ${responseSchema}
