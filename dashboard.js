@@ -652,14 +652,13 @@ Generate exactly ${count} domain name ideas.
 Niche Category: ${niche}
 Brand Description: ${description}
 Max Character Length: ${charLength}
-
 Flowing Rules: ${rules}
 Style: ${style}
 ${affixPrompt}
 What to avoid:
 ${negative}
 
-Action Prompt:
+Response Schema:
 ${actionPrompt}
 `;
 
