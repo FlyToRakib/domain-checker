@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Domain Availability Checker - Bulk Search",
   "short_name": "Domain Checker",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "AI-powered bulk domain availability checker. Features AI Brand Name Generator, multi-TLD RDAP checks, CSV export & local saving.",
   "icons": {
     "16": "assets/icon16.png",
@@ -24,7 +24,6 @@
   "permissions": [
     "tabs",
     "scripting",
-    "downloads",
     "storage"
   ],
   "host_permissions": [
